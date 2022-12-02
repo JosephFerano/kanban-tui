@@ -1,0 +1,2 @@
+*** Kanban TUI
+Using *tui-rs* to build a kanban board

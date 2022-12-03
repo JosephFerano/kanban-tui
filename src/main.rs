@@ -1,14 +1,14 @@
+#![allow(dead_code)]
 mod ui;
 mod types;
+mod input;
 
 use std::{io};
-use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}
-};
+use crossterm::{event::*, terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}};
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
-use crate::types::{Project, Task};
+use crate::input::handle_input;
+use crate::types::*;
 
 fn main() -> Result<(), io::Error> {
     // setup terminal
@@ -18,17 +18,12 @@ fn main() -> Result<(), io::Error> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut project = Project::load();
+    let mut state = AppState::new(Project::load());
 
     loop {
-        terminal.draw(|f| ui::draw(f, &mut project))?;
-
-        if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Char('q') => break,
-                _ => {}
-            }
-        }
+        terminal.draw(|f| ui::draw(f, &mut state))?;
+        handle_input(&mut state)?;
+        if state.quit { break }
     }
 
     // restore terminal

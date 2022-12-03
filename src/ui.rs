@@ -5,17 +5,18 @@ use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
 use tui::widgets::*;
 use crate::types::*;
+use int_enum::IntEnum;
 
 fn draw_tasks<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
     let columns = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(
             vec![Constraint::Percentage(20);
-                 state.current_project.tasks.len()].as_ref()
+                 state.current_project.tasks_per_column.len()].as_ref()
         )
         .split(*area);
 
-    for (i, (status, tasks)) in state.current_project.tasks.iter().enumerate() {
+    for (i, (status, tasks)) in state.current_project.tasks_per_column.iter().enumerate() {
         let items: Vec<ListItem> = tasks.iter().map(|t| {
             ListItem::new(vec![Spans::from(Span::raw(&t.title))])
         }).collect();
@@ -38,7 +39,16 @@ fn draw_task_info<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
     let block = Block::default()
         .title("TASK INFO")
         .borders(Borders::ALL);
-    f.render_widget(block, *area);
+    let column: TaskStatus = TaskStatus::from_int(state.selected_column).unwrap();
+    let tasks = state.current_project.tasks_per_column.get(&column).unwrap();
+    if tasks.len() > 0 {
+        let task: &Task = &tasks[state.selected_task[state.selected_column]];
+        let p = Paragraph::new(&*task.description).block(block);
+        f.render_widget(p, *area);
+    } else {
+        let p = Paragraph::new("No tasks for this column").block(block);
+        f.render_widget(p, *area);
+    }
 }
 
 pub fn draw<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {

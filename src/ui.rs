@@ -51,7 +51,7 @@ fn draw_task_info<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
     let tasks = state.current_project.tasks_per_column.get(&column).unwrap();
     if tasks.len() > 0 {
         let task: &Task = &tasks[state.selected_task[state.selected_column]];
-        let p = Paragraph::new(task.description.as_str()).block(block);
+        let p = Paragraph::new(task.description.as_str()).block(block).wrap(Wrap { trim: true });
         f.render_widget(p, *area);
     } else {
         let p = Paragraph::new("No tasks for this column").block(block);

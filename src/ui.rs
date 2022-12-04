@@ -11,12 +11,12 @@ fn draw_tasks<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
     let columns = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(
-            vec![Constraint::Percentage(20);
-                 state.current_project.tasks_per_column.len()].as_ref()
+            vec![Constraint::Percentage(100 / state.project.tasks_per_column.len() as u16);
+                 state.project.tasks_per_column.len()].as_ref()
         )
         .split(*area);
 
-    for (i, (status, tasks)) in state.current_project.tasks_per_column.iter().enumerate() {
+    for (i, (status, tasks)) in state.project.tasks_per_column.iter().enumerate() {
         let items: Vec<ListItem> = tasks.iter().enumerate().map(|(j, task)| {
             let mut style = Style::default();
             if i == state.selected_column && j == state.selected_task[state.selected_column] {
@@ -48,7 +48,7 @@ fn draw_task_info<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
         .title("TASK INFO")
         .borders(Borders::ALL);
     let column: TaskStatus = TaskStatus::from_int(state.selected_column).unwrap();
-    let tasks = state.current_project.tasks_per_column.get(&column).unwrap();
+    let tasks = state.project.tasks_per_column.get(&column).unwrap();
     if tasks.len() > 0 {
         let task: &Task = &tasks[state.selected_task[state.selected_column]];
         let p = Paragraph::new(task.description.as_str()).block(block).wrap(Wrap { trim: true });

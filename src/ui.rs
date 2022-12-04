@@ -4,8 +4,7 @@ use tui::{Frame};
 use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
 use tui::widgets::*;
-use crate::types::*;
-use int_enum::IntEnum;
+use crate::app::*;
 
 fn draw_tasks<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
     let columns = Layout::default()
@@ -47,10 +46,7 @@ fn draw_task_info<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
     let block = Block::default()
         .title("TASK INFO")
         .borders(Borders::ALL);
-    let column: TaskStatus = TaskStatus::from_int(state.selected_column).unwrap();
-    let tasks = state.project.tasks_per_column.get(&column).unwrap();
-    if tasks.len() > 0 {
-        let task: &Task = &tasks[state.selected_task[state.selected_column]];
+    if let Some(task) = state.get_selected_task() {
         let p = Paragraph::new(task.description.as_str()).block(block).wrap(Wrap { trim: true });
         f.render_widget(p, *area);
     } else {

@@ -17,8 +17,16 @@ fn draw_tasks<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
         .split(*area);
 
     for (i, (status, tasks)) in state.current_project.tasks_per_column.iter().enumerate() {
-        let items: Vec<ListItem> = tasks.iter().map(|t| {
-            ListItem::new(vec![Spans::from(Span::raw(&t.title))])
+        let items: Vec<ListItem> = tasks.iter().enumerate().map(|(j, task)| {
+            let mut style = Style::default();
+            if i == state.selected_column && j == state.selected_task[state.selected_column] {
+                style = style.fg(Color::White).add_modifier(Modifier::BOLD);
+            } else {
+                style = style.fg(Color::White);
+            }
+            let mut s = Span::raw(task.title.as_str());
+            s.style = style;
+            ListItem::new(vec![Spans::from(s)])
         }).collect();
         let mut style = Style::default();
         if i == state.selected_column { style = style.fg(Color::Green); };
@@ -43,7 +51,7 @@ fn draw_task_info<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
     let tasks = state.current_project.tasks_per_column.get(&column).unwrap();
     if tasks.len() > 0 {
         let task: &Task = &tasks[state.selected_task[state.selected_column]];
-        let p = Paragraph::new(&*task.description).block(block);
+        let p = Paragraph::new(task.description.as_str()).block(block);
         f.render_widget(p, *area);
     } else {
         let p = Paragraph::new("No tasks for this column").block(block);

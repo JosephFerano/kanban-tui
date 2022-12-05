@@ -72,13 +72,9 @@ impl Project {
         self.tasks_per_column.entry(status).or_default().push(task);
     }
 
-    /// Comment out cause this is dangerous
-    pub fn save() {
-        // let mut project = Project::new("Kanban Tui");
-        // project.add_task(Task::default());
-        // project.add_task(Task::default());
-        // let json = serde_json::to_string_pretty(&project).unwrap();
-        // std::fs::write("./project.json", json).unwrap();
+    pub fn save(&self) {
+        let json = serde_json::to_string_pretty(&self).unwrap();
+        std::fs::write("kanban-tui.json", json).unwrap();
     }
 }
 
@@ -161,6 +157,7 @@ impl AppState {
             let target_tasks = self.get_tasks_in_active_column_mut();
             target_tasks.push(task);
             *self.selected_task_idx_mut() = target_tasks.len() - 1;
+            self.project.save();
         }
     }
 
@@ -174,6 +171,7 @@ impl AppState {
             let target_tasks = self.get_tasks_in_active_column_mut();
             target_tasks.push(task);
             *self.selected_task_idx_mut() = target_tasks.len() - 1;
+            self.project.save();
         }
     }
 
@@ -183,6 +181,7 @@ impl AppState {
             let tasks = self.get_tasks_in_active_column_mut();
             tasks.swap(task_idx, task_idx - 1);
             *self.selected_task_idx_mut() = task_idx - 1;
+            self.project.save();
         }
     }
 
@@ -192,6 +191,7 @@ impl AppState {
         if task_idx < tasks.len() - 1 {
             tasks.swap(task_idx, task_idx + 1);
             *self.selected_task_idx_mut() = task_idx + 1;
+            self.project.save();
         }
     }
 }

@@ -81,7 +81,7 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
         .borders(Borders::ALL);
 
     let foot_txt =
-        Paragraph::new("q : Quit | ⏪🔽🔼⏩ or hjkl : Navigation")
+        Paragraph::new("q : Quit | ⏪🔽🔼⏩ or hjkl : Navigation | < > or H L : Shift task left/right | = - or J K : Shift task up/down")
             .block(block);
     f.render_widget(foot_txt, main_layout[3]);
 }

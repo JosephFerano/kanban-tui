@@ -54,6 +54,71 @@ fn draw_task_info<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
         f.render_widget(p, *area);
     }
 }
+fn centered_rect_for_popup(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Percentage(percent_y),
+                Constraint::Percentage((100 - percent_y) / 2),
+            ]
+                .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ]
+                .as_ref(),
+        )
+        .split(popup_layout[1])[1]
+}
+
+pub fn draw_new_task_popup<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
+    let area = centered_rect_for_popup(45, 60, f.size());
+    f.render_widget(Clear, area);
+    match &state.popup_text {
+        None => {}
+        Some(s) => {
+            let block = Block::default().title("Add Task")
+                .title_alignment(Alignment::Center)
+                .borders(Borders::ALL);
+            let block_inner = block.inner(area);
+            let main = Paragraph::new(s.as_ref())
+                .block(block);
+            let layout = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints(
+                    [
+                        Constraint::Length(3),
+                        Constraint::Max(100),
+                        Constraint::Length(2),
+                    ].as_ref()
+                ).split(block_inner);
+            let b1 = Block::default().title("Title").borders(Borders::ALL);
+            let title = Paragraph::new("Hello I am text")
+                // .style(Style::default().fg(Color::Yellow))
+                .block(b1);
+            let b2 = Block::default().title("Description").borders(Borders::ALL);
+            let description = Paragraph::new("Fill this out")
+                // .style(Style::default().fg(Color::Yellow))
+                .block(b2);
+            let b3 = Block::default().title("Keys").borders(Borders::TOP);
+            let footer = Paragraph::new("p : Cancel")
+                .block(b3);
+            f.render_widget(main, area);
+            f.render_widget(title, layout[0]);
+            f.render_widget(description, layout[1]);
+            f.render_widget(footer, layout[2]);
+        }
+    }
+}
 
 pub fn draw<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
     let main_layout = Layout::default()
@@ -61,9 +126,9 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
         .constraints(
             [
                 Constraint::Percentage(10),
-                Constraint::Percentage(60),
+                Constraint::Percentage(65),
                 Constraint::Percentage(20),
-                Constraint::Percentage(10),
+                Constraint::Length(3),
             ].as_ref()
         ).split(f.size());
 
@@ -78,10 +143,14 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
 
     let block = Block::default()
         .title("KEYBINDINGS")
-        .borders(Borders::ALL);
+        .borders(Borders::TOP);
 
     let foot_txt =
         Paragraph::new("q : Quit | ⏪🔽🔼⏩ or hjkl : Navigation | < > or H L : Shift task left/right | = - or J K : Shift task up/down")
             .block(block);
     f.render_widget(foot_txt, main_layout[3]);
+
+    if state.popup_text.is_some() {
+        draw_new_task_popup(f, state);
+    }
 }

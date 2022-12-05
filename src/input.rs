@@ -22,6 +22,12 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
             KeyCode::Char('J') => state.move_task_down(),
             KeyCode::Char('-') |
             KeyCode::Char('K') => state.move_task_up(),
+            KeyCode::Char('p') => {
+                match state.popup_text {
+                    None => state.popup_text = Some("".to_string()),
+                    Some(_) => state.popup_text = None,
+                }
+            }
             _ => {}
         }
     }

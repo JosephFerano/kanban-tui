@@ -92,6 +92,7 @@ pub struct AppState {
     pub selected_task: [usize; 4],
     pub project: Project,
     pub quit: bool,
+    pub popup_text: Option<String>,
 }
 
 impl AppState {
@@ -100,6 +101,7 @@ impl AppState {
             selected_column: 0,
             selected_task: [0, 0, 0, 0],
             quit: false,
+            popup_text: None,
             project,
         }
     }

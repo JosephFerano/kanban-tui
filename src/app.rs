@@ -1,13 +1,15 @@
-use std::cmp::min;
 use indexmap::IndexMap;
 use int_enum::IntEnum;
 use serde::{Deserialize, Serialize};
+use std::cmp::min;
 
 #[cfg(test)]
 mod tests;
 
 #[repr(usize)]
-#[derive(Deserialize, Serialize, Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, IntEnum)]
+#[derive(
+    Deserialize, Serialize, Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, IntEnum,
+)]
 pub enum TaskStatus {
     Todo = 0,
     InProgress = 1,
@@ -50,12 +52,12 @@ impl Project {
     pub fn new(name: &str) -> Self {
         Project {
             name: name.to_owned(),
-            tasks_per_column: IndexMap::from(
-                [(TaskStatus::Done, vec![]),
-                    (TaskStatus::Todo, vec![]),
-                    (TaskStatus::InProgress, vec![]),
-                    (TaskStatus::Ideas, vec![])],
-            ),
+            tasks_per_column: IndexMap::from([
+                (TaskStatus::Done, vec![]),
+                (TaskStatus::Todo, vec![]),
+                (TaskStatus::InProgress, vec![]),
+                (TaskStatus::Ideas, vec![]),
+            ]),
         }
     }
 
@@ -146,7 +148,10 @@ impl AppState {
     }
 
     pub fn select_next_column(&mut self) {
-        self.selected_column = min(self.selected_column + 1, self.project.tasks_per_column.len() - 1)
+        self.selected_column = min(
+            self.selected_column + 1,
+            self.project.tasks_per_column.len() - 1,
+        )
     }
 
     pub fn move_task_previous_column(&mut self) {
@@ -166,7 +171,10 @@ impl AppState {
     pub fn move_task_next_column(&mut self) {
         let tasks = self.get_tasks_in_active_column();
         let task_idx = self.selected_task_idx();
-        if self.selected_column < self.project.tasks_per_column.len() && tasks.len() > 0 && task_idx < tasks.len() {
+        if self.selected_column < self.project.tasks_per_column.len()
+            && tasks.len() > 0
+            && task_idx < tasks.len()
+        {
             let task = self.get_tasks_in_active_column_mut().remove(task_idx);
             *self.selected_task_idx_mut() = self.selected_task_idx().saturating_sub(1);
             self.select_next_column();
@@ -197,4 +205,3 @@ impl AppState {
         }
     }
 }
-

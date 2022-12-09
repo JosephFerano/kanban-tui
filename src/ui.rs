@@ -11,20 +11,22 @@ fn draw_tasks<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
         .direction(Direction::Horizontal)
         .constraints(
             vec![
-                Constraint::Percentage(100 / state.project.tasks_per_column.len() as u16);
-                state.project.tasks_per_column.len()
+                Constraint::Percentage(100 / state.project.columns.len() as u16);
+                state.project.columns.len()
             ]
             .as_ref(),
         )
         .split(*area);
 
-    for (i, (status, tasks)) in state.project.tasks_per_column.iter().enumerate() {
-        let items: Vec<ListItem> = tasks
+    for (i, column) in state.project.columns.iter().enumerate() {
+        let items: Vec<ListItem> = column.tasks
             .iter()
             .enumerate()
             .map(|(j, task)| {
                 let mut style = Style::default();
-                if i == state.selected_column && j == state.selected_task[state.selected_column] {
+                let col_idx = state.project.selected_column_idx;
+                let task_idx = state.project.get_selected_column().selected_task_idx;
+                if i == col_idx && j == task_idx {
                     style = style.fg(Color::White).add_modifier(Modifier::BOLD);
                 } else {
                     style = style.fg(Color::White);
@@ -35,10 +37,10 @@ fn draw_tasks<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
             })
             .collect();
         let mut style = Style::default();
-        if i == state.selected_column {
+        if i == state.project.selected_column_idx {
             style = style.fg(Color::Green);
         };
-        let mut s = Span::raw(format!("{:?}", status));
+        let mut s = Span::raw(format!("{:?}", column.name));
         s.style = Style::default()
             .add_modifier(Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED)
             .fg(Color::White);
@@ -50,7 +52,7 @@ fn draw_tasks<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
 
 fn draw_task_info<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
     let block = Block::default().title("TASK INFO").borders(Borders::ALL);
-    if let Some(task) = state.get_selected_task() {
+    if let Some(task) = state.project.get_selected_column().get_selected_task() {
         let p = Paragraph::new(task.description.as_str())
             .block(block)
             .wrap(Wrap { trim: true });

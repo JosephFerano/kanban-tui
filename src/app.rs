@@ -144,29 +144,28 @@ impl AppState {
     }
 
     pub fn move_task_previous_column(&mut self) {
+        let col_idx = self.project.selected_column_idx;
         let column = self.project.get_selected_column_mut();
-        if let Some(task) = column.get_selected_task_mut() {
-            if self.project.selected_column_idx > 0 {
-                column.tasks.remove(column.selected_task_idx);
-                self.select_previous_column().tasks.push(*task);
-                self.project.save();
-            }
+        if col_idx > 0 && column.tasks.len() > 0 {
+            let t = column.tasks.remove(column.selected_task_idx);
+            column.tasks.push(t);
+            self.project.save();
         }
     }
 
     pub fn move_task_next_column(&mut self) {
-        let column = self.project.get_selected_column();
-        if let Some(task) = column.get_selected_task() {
-            if self.project.selected_column_idx < self.project.columns.len() {
-                column.tasks.remove(column.selected_task_idx);
-                self.select_next_column().tasks.push(*task);
-                self.project.save();
-            }
+        let col_idx = self.project.selected_column_idx;
+        let cols_len = self.project.columns.len();
+        let column = self.project.get_selected_column_mut();
+        if col_idx < cols_len - 1 && column.tasks.len() > 0 {
+            let t = column.tasks.remove(column.selected_task_idx);
+            column.tasks.push(t);
+            self.project.save();
         }
     }
 
     pub fn move_task_up(&mut self) {
-        let column = self.project.get_selected_column();
+        let column = self.project.get_selected_column_mut();
         if column.selected_task_idx > 0 {
             column.tasks.swap(column.selected_task_idx, column.selected_task_idx - 1);
             column.selected_task_idx = column.selected_task_idx - 1;
@@ -175,7 +174,7 @@ impl AppState {
     }
 
     pub fn move_task_down(&mut self) {
-        let column = self.project.get_selected_column();
+        let column = self.project.get_selected_column_mut();
         if column.selected_task_idx < column.tasks.len() - 1 {
             column.tasks.swap(column.selected_task_idx, column.selected_task_idx + 1);
             column.selected_task_idx = column.selected_task_idx + 1;

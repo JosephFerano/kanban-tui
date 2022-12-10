@@ -14,6 +14,14 @@ pub struct Column {
 }
 
 impl Column {
+    pub fn new(name: &str) -> Self {
+        Column {
+            name: name.to_owned(),
+            tasks: vec![],
+            selected_task_idx: 0,
+        }
+    }
+
     pub fn get_selected_task(&self) -> Option<&Task> {
         self.tasks.get(self.selected_task_idx)
     }
@@ -21,6 +29,17 @@ impl Column {
     pub fn get_selected_task_mut(&mut self) -> Option<&mut Task> {
         self.tasks.get_mut(self.selected_task_idx)
     }
+
+    pub fn select_previous_task(&mut self) {
+        let task_idx = &mut self.selected_task_idx;
+        *task_idx = task_idx.saturating_sub(1)
+    }
+
+    pub fn select_next_task(&mut self) {
+        let task_idx = &mut self.selected_task_idx;
+        *task_idx = min(*task_idx + 1, self.tasks.len() - 1)
+    }
+
 }
 
 // #[derive(Deserialize, Serialize, Debug, Clone, Copy)]
@@ -90,6 +109,61 @@ impl Project {
         &mut self.columns[self.selected_column_idx]
     }
 
+    pub fn select_previous_column(&mut self) -> &Column {
+        self.selected_column_idx = self.selected_column_idx.saturating_sub(1);
+        &self.columns[self.selected_column_idx]
+    }
+
+    pub fn select_next_column(&mut self) -> &Column {
+        self.selected_column_idx = min(
+            self.selected_column_idx + 1,
+            self.columns.len() - 1,
+        );
+        &self.columns[self.selected_column_idx]
+    }
+
+    pub fn move_task_previous_column(&mut self) {
+        let col_idx = self.selected_column_idx;
+        let column = self.get_selected_column_mut();
+        if col_idx > 0 && column.tasks.len() > 0 {
+            let t = column.tasks.remove(column.selected_task_idx);
+            column.select_previous_task();
+            self.select_previous_column();
+            self.get_selected_column_mut().tasks.push(t);
+            self.save();
+        }
+    }
+
+    pub fn move_task_next_column(&mut self) {
+        let col_idx = self.selected_column_idx;
+        let cols_len = self.columns.len();
+        let column = self.get_selected_column_mut();
+        if col_idx < cols_len - 1 && column.tasks.len() > 0 {
+            let t = column.tasks.remove(column.selected_task_idx);
+            column.select_previous_task();
+            self.select_next_column();
+            self.get_selected_column_mut().tasks.push(t);
+            self.save();
+        }
+    }
+
+    pub fn move_task_up(&mut self) {
+        let column = self.get_selected_column_mut();
+        if column.selected_task_idx > 0 {
+            column.tasks.swap(column.selected_task_idx, column.selected_task_idx - 1);
+            column.selected_task_idx = column.selected_task_idx - 1;
+            self.save();
+        }
+    }
+
+    pub fn move_task_down(&mut self) {
+        let column = self.get_selected_column_mut();
+        if column.selected_task_idx < column.tasks.len() - 1 {
+            column.tasks.swap(column.selected_task_idx, column.selected_task_idx + 1);
+            column.selected_task_idx = column.selected_task_idx + 1;
+            self.save();
+        }
+    }
 }
 
 impl Default for Project {
@@ -119,66 +193,4 @@ impl AppState {
         }
     }
 
-    pub fn select_previous_task(&mut self) {
-        let task_idx = &mut self.project.get_selected_column_mut().selected_task_idx;
-        *task_idx = task_idx.saturating_sub(1)
-    }
-
-    pub fn select_next_task(&mut self) {
-        let column = &mut self.project.get_selected_column_mut();
-        let task_idx = &mut column.selected_task_idx;
-        *task_idx = min(*task_idx, column.tasks.len() - 1)
-    }
-
-    pub fn select_previous_column(&mut self) -> &Column {
-        self.project.selected_column_idx = self.project.selected_column_idx.saturating_sub(1);
-        &self.project.columns[self.project.selected_column_idx]
-    }
-
-    pub fn select_next_column(&mut self) -> &Column {
-        self.project.selected_column_idx = min(
-            self.project.selected_column_idx + 1,
-            self.project.columns.len() - 1,
-        );
-        &self.project.columns[self.project.selected_column_idx]
-    }
-
-    pub fn move_task_previous_column(&mut self) {
-        let col_idx = self.project.selected_column_idx;
-        let column = self.project.get_selected_column_mut();
-        if col_idx > 0 && column.tasks.len() > 0 {
-            let t = column.tasks.remove(column.selected_task_idx);
-            column.tasks.push(t);
-            self.project.save();
-        }
-    }
-
-    pub fn move_task_next_column(&mut self) {
-        let col_idx = self.project.selected_column_idx;
-        let cols_len = self.project.columns.len();
-        let column = self.project.get_selected_column_mut();
-        if col_idx < cols_len - 1 && column.tasks.len() > 0 {
-            let t = column.tasks.remove(column.selected_task_idx);
-            column.tasks.push(t);
-            self.project.save();
-        }
-    }
-
-    pub fn move_task_up(&mut self) {
-        let column = self.project.get_selected_column_mut();
-        if column.selected_task_idx > 0 {
-            column.tasks.swap(column.selected_task_idx, column.selected_task_idx - 1);
-            column.selected_task_idx = column.selected_task_idx - 1;
-            self.project.save();
-        }
-    }
-
-    pub fn move_task_down(&mut self) {
-        let column = self.project.get_selected_column_mut();
-        if column.selected_task_idx < column.tasks.len() - 1 {
-            column.tasks.swap(column.selected_task_idx, column.selected_task_idx + 1);
-            column.selected_task_idx = column.selected_task_idx + 1;
-            self.project.save();
-        }
-    }
 }

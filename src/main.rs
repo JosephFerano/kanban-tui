@@ -20,6 +20,8 @@ fn main() -> anyhow::Result<()> {
         kanban_tui::handle_input(&mut state)?;
     }
 
+    state.project.save();
+
     // restore terminal
     disable_raw_mode()?;
     crossterm::execute!(

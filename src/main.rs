@@ -1,8 +1,11 @@
 #![allow(dead_code)]
 use kanban_tui::*;
 
-use std::{io};
-use crossterm::{event::*, terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}};
+use crossterm::{
+    event::*,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use std::io;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 

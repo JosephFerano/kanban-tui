@@ -1,2 +1,4 @@
-*** Kanban TUI
+#+OPTIONS: toc:nil
+
+* Kanban TUI
 Using *tui-rs* to build a kanban board

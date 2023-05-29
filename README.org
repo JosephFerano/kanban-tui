@@ -1,4 +1,12 @@
 #+OPTIONS: toc:nil
 
-* Kanban TUI
-Using *tui-rs* to build a kanban board
+* About
+
+This ia a Rust powered TUI Kanban Board built using the [[https://github.com/fdehau/tui-rs][tui-rs]] library. It has
+vim-friendly keybindings and while not the most featureful experience, it's fast
+and gets the job done. You can save your TODOs in your project's root as either
+a json file or a SQLite database.
+
+* Installing
+
+Clone this repository, then simply run ~cargo build~ or ~cargo run~

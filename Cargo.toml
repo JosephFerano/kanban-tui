@@ -13,7 +13,3 @@ serde_json = "1.0.89"
 int-enum = "0.5.0"
 thiserror = "1"
 anyhow = "1"
-tree-sitter = "0.20.9"
-
-[build-dependencies]
-cc="*"

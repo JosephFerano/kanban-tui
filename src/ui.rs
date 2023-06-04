@@ -62,6 +62,7 @@ fn draw_task_info<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
         f.render_widget(p, *area);
     }
 }
+
 fn centered_rect_for_popup(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
@@ -91,15 +92,15 @@ fn centered_rect_for_popup(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
 pub fn draw_new_task_popup<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
     let area = centered_rect_for_popup(45, 60, f.size());
     f.render_widget(Clear, area);
-    match &state.popup_text {
+    match &state.new_task_state {
         None => {}
-        Some(s) => {
+        Some(task) => {
             let block = Block::default()
                 .title("Add Task")
                 .title_alignment(Alignment::Center)
                 .borders(Borders::ALL);
             let block_inner = block.inner(area);
-            let main = Paragraph::new(s.as_ref()).block(block);
+            let main = Paragraph::new(task.description.as_ref()).block(block);
             let layout = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints(
@@ -157,7 +158,7 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
             .block(block);
     f.render_widget(foot_txt, main_layout[3]);
 
-    if state.popup_text.is_some() {
+    if state.new_task_state.is_some() {
         draw_new_task_popup(f, state);
     }
 }

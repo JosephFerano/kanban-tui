@@ -55,23 +55,45 @@ impl Default for Project {
     }
 }
 
+#[derive(Debug)]
+pub enum NewTaskFocus {
+    Title,
+    Description,
+    Buttons
+}
+
+pub struct NewTask {
+    pub title: String,
+    pub description: String,
+    pub focus: NewTaskFocus
+}
+
+impl Default for NewTask {
+    fn default() -> Self {
+        NewTask {
+            title: String::new(),
+            description: String::new(),
+            focus: NewTaskFocus::Title
+        }
+    }
+}
+
 pub struct AppState {
     pub project: Project,
     pub quit: bool,
     pub columns: Vec<Column>,
-    pub popup_text: Option<String>,
+    pub new_task_state: Option<NewTask>,
 }
 
 impl AppState {
     pub fn new(project: Project) -> Self {
         AppState {
             quit: false,
-            popup_text: None,
+            new_task_state: None,
             project,
             columns: vec![],
         }
     }
-
 }
 
 impl Column {

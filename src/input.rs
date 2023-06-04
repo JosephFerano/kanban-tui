@@ -1,12 +1,14 @@
 use crossterm::event;
 use crossterm::event::{Event, KeyCode};
-use crate::app::{AppState};
+use crate::app::{NewTask, AppState};
 
 pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
     let project = &mut state.project;
     let column = project.get_selected_column_mut();
     if let Event::Key(key) = event::read()? {
         match key.code {
+            // KeyCode::BackTab   =>
+            // KeyCode::Tab       =>
             KeyCode::Char('q') => state.quit = true,
             KeyCode::Char('h') |
             KeyCode::Left      => { project.select_previous_column(); },
@@ -25,9 +27,9 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
             KeyCode::Char('-') |
             KeyCode::Char('K') => project.move_task_up(),
             KeyCode::Char('p') => {
-                match state.popup_text {
-                    None => state.popup_text = Some("".to_string()),
-                    Some(_) => state.popup_text = None,
+                match state.new_task_state {
+                    None => state.new_task_state = Some(NewTask::default()),
+                    Some(_) => state.new_task_state = None,
                 }
             }
             _ => {}

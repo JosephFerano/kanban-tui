@@ -2,6 +2,7 @@
 // use int_enum::IntEnum;
 use serde::{Deserialize, Serialize};
 use std::cmp::min;
+use tui_textarea::TextArea;
 
 #[cfg(test)]
 mod tests;
@@ -62,30 +63,30 @@ pub enum NewTaskFocus {
     Buttons
 }
 
-pub struct NewTask {
-    pub title: String,
-    pub description: String,
+pub struct NewTask<'a> {
+    pub title: TextArea<'a>,
+    pub description: TextArea<'a>,
     pub focus: NewTaskFocus
 }
 
-impl Default for NewTask {
+impl Default for NewTask<'_> {
     fn default() -> Self {
         NewTask {
-            title: String::new(),
-            description: String::new(),
+            title: TextArea::default(),
+            description: TextArea::default(),
             focus: NewTaskFocus::Title
         }
     }
 }
 
-pub struct AppState {
+pub struct AppState<'a> {
     pub project: Project,
     pub quit: bool,
     pub columns: Vec<Column>,
-    pub new_task_state: Option<NewTask>,
+    pub new_task_state: Option<NewTask<'a>>,
 }
 
-impl AppState {
+impl AppState<'_> {
     pub fn new(project: Project) -> Self {
         AppState {
             quit: false,

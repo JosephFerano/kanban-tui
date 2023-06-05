@@ -1,6 +1,6 @@
+#![allow(unused_imports)]
 #![allow(dead_code)]
 use kanban_tui::*;
-
 use crossterm::{
     event::*,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},

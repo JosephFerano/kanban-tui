@@ -6,8 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tui = "0.19.0"
-crossterm = "0.25"
+tui = { package = "ratatui", version = "0.20.1" }
+tui-textarea = { version = "0.2.0", git = "https://github.com/rhysd/tui-textarea.git", features = ["ratatui-crossterm"], default-features=false }
+crossterm = "0.26.1"
 serde = { version = "1.0.148" , features = [ "derive" ] }
 serde_json = "1.0.89"
 int-enum = "0.5.0"

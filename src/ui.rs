@@ -92,7 +92,7 @@ fn centered_rect_for_popup(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
 pub fn draw_new_task_popup<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
     let area = centered_rect_for_popup(45, 60, f.size());
     f.render_widget(Clear, area);
-    match &state.new_task_state {
+    match &mut state.new_task_state {
         None => {}
         Some(task) => {
             let block = Block::default()
@@ -100,7 +100,7 @@ pub fn draw_new_task_popup<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
                 .title_alignment(Alignment::Center)
                 .borders(Borders::ALL);
             let block_inner = block.inner(area);
-            let main = Paragraph::new(task.description.as_ref()).block(block);
+            // let main = Paragraph::new(task.description.clone()).block(block);
             let layout = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints(
@@ -113,18 +113,22 @@ pub fn draw_new_task_popup<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
                 )
                 .split(block_inner);
             let b1 = Block::default().title("Title").borders(Borders::ALL);
-            let title = Paragraph::new("Hello I am text")
+            // let title = Paragraph::new("Hello I am text")
                 // .style(Style::default().fg(Color::Yellow))
-                .block(b1);
+                // .block(b1);
             let b2 = Block::default().title("Description").borders(Borders::ALL);
-            let description = Paragraph::new("Fill this out")
+            // let description = Paragraph::new("Fill this out")
                 // .style(Style::default().fg(Color::Yellow))
-                .block(b2);
+                // .block(b2);
             let b3 = Block::default().title("Keys").borders(Borders::TOP);
             let footer = Paragraph::new("p : Cancel").block(b3);
-            f.render_widget(main, area);
-            f.render_widget(title, layout[0]);
-            f.render_widget(description, layout[1]);
+            // f.render_widget(main, area);
+            // f.render_widget(title, layout[0]);
+            task.title.set_block(b1);
+            f.render_widget(task.title.widget(), layout[0]);
+            // f.render_widget(description, layout[1]);
+            task.description.set_block(b2);
+            f.render_widget(task.description.widget(), layout[1]);
             f.render_widget(footer, layout[2]);
         }
     }

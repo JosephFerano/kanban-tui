@@ -125,9 +125,23 @@ pub fn draw_new_task_popup<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
             // f.render_widget(main, area);
             // f.render_widget(title, layout[0]);
             task.title.set_block(b1);
+            if let NewTaskFocus::Title = task.focus {
+                task.title.set_style(Style::default().fg(Color::Yellow));
+                task.title.set_cursor_style(Style::default().add_modifier(Modifier::REVERSED));
+            } else {
+                task.title.set_style(Style::default());
+                task.title.set_cursor_style(Style::default());
+            }
             f.render_widget(task.title.widget(), layout[0]);
             // f.render_widget(description, layout[1]);
             task.description.set_block(b2);
+            if let NewTaskFocus::Description = task.focus {
+                task.description.set_style(Style::default().fg(Color::Yellow));
+                task.description.set_cursor_style(Style::default().add_modifier(Modifier::REVERSED));
+            } else {
+                task.description.set_style(Style::default());
+                task.description.set_cursor_style(Style::default());
+            }
             f.render_widget(task.description.widget(), layout[1]);
             f.render_widget(footer, layout[2]);
         }

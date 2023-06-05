@@ -11,6 +11,7 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
     if let Event::Key(key) = event::read()? {
         match &mut state.new_task_state {
             Some(task) => {
+                // TODO: Extract this code to a separate function to avoid nesting
                 match task.focus {
                     // TODO: Handle wrapping around the enum rather than doing it manually
                     NewTaskFocus::Title => {

@@ -107,23 +107,60 @@ pub fn draw_new_task_popup<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
                     [
                         Constraint::Length(3),
                         Constraint::Max(100),
+                        Constraint::Length(3),
                         Constraint::Length(2),
                     ]
                     .as_ref(),
                 )
                 .split(block_inner);
+
+            let buttons = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints(
+                    [
+                        Constraint::Percentage(80),
+                        Constraint::Min(10),
+                        Constraint::Min(10)
+                    ]
+                    .as_ref(),
+                )
+                .split(layout[2]);
+
+            let create_style;
+            let create_txt;
+            let cancel_style;
+            let cancel_txt;
+            match task.focus {
+                NewTaskFocus::CreateBtn => {
+                    create_style = Style::default().fg(Color::Yellow);
+                    cancel_style = Style::default();
+                    create_txt = "[Create]";
+                    cancel_txt = " Cancel ";
+                }
+                NewTaskFocus::CancelBtn => {
+                    create_style = Style::default();
+                    cancel_style = Style::default().fg(Color::Yellow);
+                    create_txt = " Create ";
+                    cancel_txt = "[Cancel]";
+                }
+                _ => {
+                    create_style = Style::default();
+                    cancel_style = Style::default();
+                    create_txt = " Create ";
+                    cancel_txt = " Cancel ";
+                }
+            }
+            let create_btn = Paragraph::new(create_txt).style(create_style);
+            let cancel_btn = Paragraph::new(cancel_txt).style(cancel_style);
+            f.render_widget(create_btn, buttons[1]);
+            f.render_widget(cancel_btn, buttons[2]);
+
             let b1 = Block::default().title("Title").borders(Borders::ALL);
-            // let title = Paragraph::new("Hello I am text")
-                // .style(Style::default().fg(Color::Yellow))
-                // .block(b1);
             let b2 = Block::default().title("Description").borders(Borders::ALL);
-            // let description = Paragraph::new("Fill this out")
-                // .style(Style::default().fg(Color::Yellow))
-                // .block(b2);
             let b3 = Block::default().title("Keys").borders(Borders::TOP);
-            let footer = Paragraph::new("p : Cancel").block(b3);
-            // f.render_widget(main, area);
-            // f.render_widget(title, layout[0]);
+            task.title.set_cursor_line_style(Style::default());
+            task.description.set_cursor_line_style(Style::default());
+
             task.title.set_block(b1);
             if let NewTaskFocus::Title = task.focus {
                 task.title.set_style(Style::default().fg(Color::Yellow));
@@ -133,7 +170,7 @@ pub fn draw_new_task_popup<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
                 task.title.set_cursor_style(Style::default());
             }
             f.render_widget(task.title.widget(), layout[0]);
-            // f.render_widget(description, layout[1]);
+
             task.description.set_block(b2);
             if let NewTaskFocus::Description = task.focus {
                 task.description.set_style(Style::default().fg(Color::Yellow));
@@ -143,7 +180,9 @@ pub fn draw_new_task_popup<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
                 task.description.set_cursor_style(Style::default());
             }
             f.render_widget(task.description.widget(), layout[1]);
-            f.render_widget(footer, layout[2]);
+
+            let footer = Paragraph::new("Tab/Backtab : Cycle").block(b3);
+            f.render_widget(footer, layout[3]);
         }
     }
 }
@@ -171,10 +210,9 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
 
     let block = Block::default().title("KEYBINDINGS").borders(Borders::TOP);
 
-    let foot_txt =
-        Paragraph::new("q : Quit | ⏪🔽🔼⏩ or hjkl : Navigation | < > or H L : Shift task left/right | = - or J K : Shift task up/down")
-            .block(block);
-    f.render_widget(foot_txt, main_layout[3]);
+    let foot_txt = "q : Quit | ⏪🔽🔼⏩ or hjkl : Navigation | < > or H L : Shift task left/right | = - or J K : Shift task up/down";
+    let footer = Paragraph::new(foot_txt).block(block);
+    f.render_widget(footer, main_layout[3]);
 
     if state.new_task_state.is_some() {
         draw_new_task_popup(f, state);

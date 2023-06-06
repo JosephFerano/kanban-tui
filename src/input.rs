@@ -17,25 +17,37 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
                     NewTaskFocus::Title => {
                         match key.code {
                             KeyCode::Tab => task.focus = NewTaskFocus::Description,
-                            KeyCode::BackTab => task.focus = NewTaskFocus::Buttons,
+                            KeyCode::BackTab => task.focus = NewTaskFocus::CancelBtn,
+                            KeyCode::Enter => (),
                             _ => { task.title.input(key); }
                         }
                     }
                     NewTaskFocus::Description => {
                         match key.code {
-                            KeyCode::Tab => task.focus = NewTaskFocus::Buttons,
+                            KeyCode::Tab => task.focus = NewTaskFocus::CreateBtn,
                             KeyCode::BackTab => task.focus = NewTaskFocus::Title,
                             _ => { task.description.input(key); }
                         }
                     }
-                    
-                    NewTaskFocus::Buttons => {
+                    NewTaskFocus::CreateBtn => {
                         match key.code {
-                            KeyCode::Tab => task.focus = NewTaskFocus::Title,
+                            KeyCode::Tab => task.focus = NewTaskFocus::CancelBtn,
                             KeyCode::BackTab => task.focus = NewTaskFocus::Description,
                             KeyCode::Enter => {
-                                // TODO: Need a function that clears state and adds a new TODO
-                                // into the right column
+                                let title = task.title.clone().into_lines().join("\n");
+                                let description = task.description.clone().into_lines().clone().join("\n");
+                                project.add_task(title, description);
+
+                                state.new_task_state = None
+                            }
+                            _ => (),
+                        }
+                    }
+                    NewTaskFocus::CancelBtn => {
+                        match key.code {
+                            KeyCode::Tab => task.focus = NewTaskFocus::Title,
+                            KeyCode::BackTab => task.focus = NewTaskFocus::CreateBtn,
+                            KeyCode::Enter => {
                                 state.new_task_state = None
                             }
                             _ => (),

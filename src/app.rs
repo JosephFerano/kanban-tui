@@ -60,7 +60,8 @@ impl Default for Project {
 pub enum NewTaskFocus {
     Title,
     Description,
-    Buttons
+    CreateBtn,
+    CancelBtn
 }
 
 pub struct NewTask<'a> {
@@ -148,9 +149,10 @@ impl Project {
         Self::load_from_json(&json)
     }
 
-    // pub fn add_task(&mut self, status: Column, task: Task) {
-    //     self.tasks_per_column.entry(status).or_default().push(task);
-    // }
+    pub fn add_task(&mut self, title: String, description: String) {
+        let task = Task { title, description };
+        self.columns[self.selected_column_idx].tasks.push(task);
+    }
 
     pub fn save(&self) {
         let json = serde_json::to_string_pretty(&self).unwrap();

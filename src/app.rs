@@ -61,13 +61,14 @@ pub enum TaskEditFocus {
     Title,
     Description,
     CreateBtn,
-    CancelBtn
+    CancelBtn,
 }
 
 pub struct TaskState<'a> {
     pub title: TextArea<'a>,
     pub description: TextArea<'a>,
-    pub focus: TaskEditFocus
+    pub focus: TaskEditFocus,
+    pub is_edit: bool
 }
 
 impl Default for TaskState<'_> {
@@ -75,7 +76,8 @@ impl Default for TaskState<'_> {
         TaskState {
             title: TextArea::default(),
             description: TextArea::default(),
-            focus: TaskEditFocus::Title
+            focus: TaskEditFocus::Title,
+            is_edit: false
         }
     }
 }
@@ -140,6 +142,16 @@ impl Column {
         self.selected_task_idx = self.tasks.len() - 1;
     }
 
+    pub fn get_task_state_from_curr_selected(&self) -> Option<TaskState> {
+        self.get_selected_task().map(|t| {
+            TaskState {
+                title: TextArea::from(t.title.chars()),
+                description: TextArea::from(t.description.chars()),
+                focus: TaskEditFocus::Title,
+                is_edit: true
+            }
+        })
+    }
 }
 
 impl Project {

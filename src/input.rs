@@ -75,10 +75,8 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
                     KeyCode::Char('K') => project.move_task_up(),
                     KeyCode::Char('n') => state.task_edit_state = Some(TaskState::default()),
                     KeyCode::Char('e') => {
-                        match state.task_edit_state {
-                            None => state.task_edit_state = Some(TaskState::default()),
-                            Some(_) => state.task_edit_state = None,
-                        }
+                        let task = column.get_task_state_from_curr_selected();
+                        state.task_edit_state = task;
                     }
                     KeyCode::Char('D') => column.remove_task(),
                     _ => {}
@@ -88,3 +86,4 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
     }
     Ok(())
 }
+

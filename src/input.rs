@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 use crossterm::event;
 use crossterm::event::{Event, KeyCode};
-use crate::app::{NewTask, AppState, NewTaskFocus};
+use crate::app::{TaskState, AppState, TaskEditFocus};
 use std::io::{stdout, Write};
 use tui_textarea::TextArea;
 
@@ -9,45 +9,45 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
     let project = &mut state.project;
     let column = project.get_selected_column_mut();
     if let Event::Key(key) = event::read()? {
-        match &mut state.new_task_state {
+        match &mut state.task_edit_state {
             Some(task) => {
                 // TODO: Extract this code to a separate function to avoid nesting
                 match task.focus {
                     // TODO: Handle wrapping around the enum rather than doing it manually
-                    NewTaskFocus::Title => {
+                    TaskEditFocus::Title => {
                         match key.code {
-                            KeyCode::Tab => task.focus = NewTaskFocus::Description,
-                            KeyCode::BackTab => task.focus = NewTaskFocus::CancelBtn,
+                            KeyCode::Tab => task.focus = TaskEditFocus::Description,
+                            KeyCode::BackTab => task.focus = TaskEditFocus::CancelBtn,
                             KeyCode::Enter => (),
                             _ => { task.title.input(key); }
                         }
                     }
-                    NewTaskFocus::Description => {
+                    TaskEditFocus::Description => {
                         match key.code {
-                            KeyCode::Tab => task.focus = NewTaskFocus::CreateBtn,
-                            KeyCode::BackTab => task.focus = NewTaskFocus::Title,
+                            KeyCode::Tab => task.focus = TaskEditFocus::CreateBtn,
+                            KeyCode::BackTab => task.focus = TaskEditFocus::Title,
                             _ => { task.description.input(key); }
                         }
                     }
-                    NewTaskFocus::CreateBtn => {
+                    TaskEditFocus::CreateBtn => {
                         match key.code {
-                            KeyCode::Tab => task.focus = NewTaskFocus::CancelBtn,
-                            KeyCode::BackTab => task.focus = NewTaskFocus::Description,
+                            KeyCode::Tab => task.focus = TaskEditFocus::CancelBtn,
+                            KeyCode::BackTab => task.focus = TaskEditFocus::Description,
                             KeyCode::Enter => {
                                 let title = task.title.clone().into_lines().join("\n");
                                 let description = task.description.clone().into_lines().clone().join("\n");
                                 column.add_task(title, description);
-                                state.new_task_state = None
+                                state.task_edit_state = None
                             }
                             _ => (),
                         }
                     }
-                    NewTaskFocus::CancelBtn => {
+                    TaskEditFocus::CancelBtn => {
                         match key.code {
-                            KeyCode::Tab => task.focus = NewTaskFocus::Title,
-                            KeyCode::BackTab => task.focus = NewTaskFocus::CreateBtn,
+                            KeyCode::Tab => task.focus = TaskEditFocus::Title,
+                            KeyCode::BackTab => task.focus = TaskEditFocus::CreateBtn,
                             KeyCode::Enter => {
-                                state.new_task_state = None
+                                state.task_edit_state = None
                             }
                             _ => (),
                         }
@@ -73,10 +73,11 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
                     KeyCode::Char('J') => project.move_task_down(),
                     KeyCode::Char('-') |
                     KeyCode::Char('K') => project.move_task_up(),
-                    KeyCode::Char('p') => {
-                        match state.new_task_state {
-                            None => state.new_task_state = Some(NewTask::default()),
-                            Some(_) => state.new_task_state = None,
+                    KeyCode::Char('n') => state.task_edit_state = Some(TaskState::default()),
+                    KeyCode::Char('e') => {
+                        match state.task_edit_state {
+                            None => state.task_edit_state = Some(TaskState::default()),
+                            Some(_) => state.task_edit_state = None,
                         }
                     }
                     KeyCode::Char('D') => column.remove_task(),

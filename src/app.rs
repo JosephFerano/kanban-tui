@@ -57,25 +57,25 @@ impl Default for Project {
 }
 
 #[derive(Debug)]
-pub enum NewTaskFocus {
+pub enum TaskEditFocus {
     Title,
     Description,
     CreateBtn,
     CancelBtn
 }
 
-pub struct NewTask<'a> {
+pub struct TaskState<'a> {
     pub title: TextArea<'a>,
     pub description: TextArea<'a>,
-    pub focus: NewTaskFocus
+    pub focus: TaskEditFocus
 }
 
-impl Default for NewTask<'_> {
+impl Default for TaskState<'_> {
     fn default() -> Self {
-        NewTask {
+        TaskState {
             title: TextArea::default(),
             description: TextArea::default(),
-            focus: NewTaskFocus::Title
+            focus: TaskEditFocus::Title
         }
     }
 }
@@ -84,14 +84,14 @@ pub struct AppState<'a> {
     pub project: Project,
     pub quit: bool,
     pub columns: Vec<Column>,
-    pub new_task_state: Option<NewTask<'a>>,
+    pub task_edit_state: Option<TaskState<'a>>,
 }
 
 impl AppState<'_> {
     pub fn new(project: Project) -> Self {
         AppState {
             quit: false,
-            new_task_state: None,
+            task_edit_state: None,
             project,
             columns: vec![],
         }

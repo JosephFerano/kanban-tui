@@ -40,7 +40,7 @@ fn draw_tasks<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
         if i == state.project.selected_column_idx {
             style = style.fg(Color::Green);
         };
-        let mut s = Span::raw(format!("{:?}", column.name));
+        let mut s = Span::raw(column.name.as_str());
         s.style = Style::default()
             .add_modifier(Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED)
             .fg(Color::White);

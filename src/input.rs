@@ -36,8 +36,7 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
                             KeyCode::Enter => {
                                 let title = task.title.clone().into_lines().join("\n");
                                 let description = task.description.clone().into_lines().clone().join("\n");
-                                project.add_task(title, description);
-
+                                column.add_task(title, description);
                                 state.new_task_state = None
                             }
                             _ => (),
@@ -80,6 +79,7 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
                             Some(_) => state.new_task_state = None,
                         }
                     }
+                    KeyCode::Char('D') => column.remove_task(),
                     _ => {}
                 }
             }

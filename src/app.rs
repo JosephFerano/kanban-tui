@@ -107,6 +107,17 @@ impl Column {
         }
     }
 
+    pub fn add_task(&mut self, title: String, description: String) {
+        let task = Task { title, description };
+        self.tasks.push(task);
+        self.select_next_task();
+    }
+
+    pub fn remove_task(&mut self) {
+        self.tasks.remove(self.selected_task_idx);
+        self.select_previous_task();
+    }
+
     pub fn get_selected_task(&self) -> Option<&Task> {
         self.tasks.get(self.selected_task_idx)
     }
@@ -147,11 +158,6 @@ impl Project {
     pub fn load() -> Result<Self, KanbanError> {
         let json = std::fs::read_to_string("kanban-tui.json")?;
         Self::load_from_json(&json)
-    }
-
-    pub fn add_task(&mut self, title: String, description: String) {
-        let task = Task { title, description };
-        self.columns[self.selected_column_idx].tasks.push(task);
     }
 
     pub fn save(&self) {

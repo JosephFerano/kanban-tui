@@ -60,7 +60,7 @@ impl Default for Project {
 pub enum TaskEditFocus {
     Title,
     Description,
-    CreateBtn,
+    ConfirmBtn,
     CancelBtn,
 }
 
@@ -140,17 +140,6 @@ impl Column {
 
     pub fn select_last_task(&mut self) {
         self.selected_task_idx = self.tasks.len() - 1;
-    }
-
-    pub fn get_task_state_from_curr_selected(&self) -> Option<TaskState> {
-        self.get_selected_task().map(|t| {
-            TaskState {
-                title: TextArea::from(t.title.chars()),
-                description: TextArea::from(t.description.chars()),
-                focus: TaskEditFocus::Title,
-                is_edit: true
-            }
-        })
     }
 }
 

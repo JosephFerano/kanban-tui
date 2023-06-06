@@ -24,19 +24,26 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
                     }
                     TaskEditFocus::Description => {
                         match key.code {
-                            KeyCode::Tab => task.focus = TaskEditFocus::CreateBtn,
+                            KeyCode::Tab => task.focus = TaskEditFocus::ConfirmBtn,
                             KeyCode::BackTab => task.focus = TaskEditFocus::Title,
                             _ => { task.description.input(key); }
                         }
                     }
-                    TaskEditFocus::CreateBtn => {
+                    TaskEditFocus::ConfirmBtn => {
                         match key.code {
                             KeyCode::Tab => task.focus = TaskEditFocus::CancelBtn,
                             KeyCode::BackTab => task.focus = TaskEditFocus::Description,
                             KeyCode::Enter => {
                                 let title = task.title.clone().into_lines().join("\n");
                                 let description = task.description.clone().into_lines().clone().join("\n");
-                                column.add_task(title, description);
+                                if task.is_edit {
+                                    if let Some(selected_task) = column.get_selected_task_mut() {
+                                        selected_task.title = title;
+                                        selected_task.description = description;
+                                    }
+                                } else {
+                                    column.add_task(title, description);
+                                }
                                 state.task_edit_state = None
                             }
                             _ => (),
@@ -45,7 +52,7 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
                     TaskEditFocus::CancelBtn => {
                         match key.code {
                             KeyCode::Tab => task.focus = TaskEditFocus::Title,
-                            KeyCode::BackTab => task.focus = TaskEditFocus::CreateBtn,
+                            KeyCode::BackTab => task.focus = TaskEditFocus::ConfirmBtn,
                             KeyCode::Enter => {
                                 state.task_edit_state = None
                             }
@@ -75,8 +82,16 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
                     KeyCode::Char('K') => project.move_task_up(),
                     KeyCode::Char('n') => state.task_edit_state = Some(TaskState::default()),
                     KeyCode::Char('e') => {
-                        let task = column.get_task_state_from_curr_selected();
-                        state.task_edit_state = task;
+                        if let Some(task) = column.get_selected_task() {
+                            let task_state =
+                                TaskState {
+                                    title: TextArea::from(task.title.lines()),
+                                    description: TextArea::from(task.description.lines()),
+                                    focus: TaskEditFocus::Title,
+                                    is_edit: true
+                                };
+                            state.task_edit_state = Some(task_state);
+                        }
                     }
                     KeyCode::Char('D') => column.remove_task(),
                     _ => {}

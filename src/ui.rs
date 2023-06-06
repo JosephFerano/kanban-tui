@@ -129,7 +129,7 @@ pub fn draw_task_popup<B: Backend>(f: &mut Frame<B>, state: &mut AppState, popup
         let cancel_style;
         let cancel_txt;
         match task.focus {
-            TaskEditFocus::CreateBtn => {
+            TaskEditFocus::ConfirmBtn => {
                 create_style = Style::default().fg(Color::Yellow);
                 cancel_style = Style::default();
                 create_txt = "[Confirm]";

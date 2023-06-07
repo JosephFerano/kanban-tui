@@ -11,7 +11,7 @@ use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
 fn main() -> anyhow::Result<()> {
-    let pattern = env::args().nth(1).expect("Path to task database not provided");
+    let pattern = env::args().nth(1).unwrap_or("kanban.json".to_string());
     let mut state = AppState::new(Project::load(pattern)?);
 
     enable_raw_mode()?;

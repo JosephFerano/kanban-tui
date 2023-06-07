@@ -2,6 +2,8 @@
 // use int_enum::IntEnum;
 use serde::{Deserialize, Serialize};
 use std::cmp::min;
+use std::fs::OpenOptions;
+use std::io::Read;
 use tui_textarea::TextArea;
 
 #[cfg(test)]
@@ -34,6 +36,7 @@ impl Default for Task {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Project {
     pub name: String,
+    pub filepath: String,
     pub selected_column_idx: usize,
     pub columns: Vec<Column>
 }
@@ -44,16 +47,6 @@ pub enum KanbanError {
     BadJson,
     #[error("IO - {0}")]
     Io(#[from] std::io::Error),
-}
-
-impl Default for Project {
-    fn default() -> Self {
-        Project {
-            name: String::new(),
-            columns: vec![],
-            selected_column_idx: 0,
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -135,14 +128,14 @@ impl<'a> Column {
 
     pub fn select_next_task(&mut self) {
         let task_idx = &mut self.selected_task_idx;
-        *task_idx = min(*task_idx + 1, self.tasks.len() - 1)
+        *task_idx = min(*task_idx + 1, self.tasks.len().saturating_sub(1))
     }
 
     pub fn select_last_task(&mut self) {
         self.selected_task_idx = self.tasks.len() - 1;
     }
 
-    pub  fn get_task_state_from_curr_selected_task(&self) -> Option<TaskState<'a>> {
+    pub fn get_task_state_from_curr_selected_task(&self) -> Option<TaskState<'a>> {
         self.get_selected_task().map(|t| {
             TaskState {
                 title: TextArea::from(t.title.lines()),
@@ -155,10 +148,16 @@ impl<'a> Column {
 }
 
 impl Project {
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: &str, filepath: String) -> Self {
         Project {
             name: name.to_owned(),
-            columns: vec![],
+            filepath,
+            columns: vec![
+                Column::new("Todo"),
+                Column::new("InProgress"),
+                Column::new("Done"),
+                Column::new("Ideas"),
+            ],
             selected_column_idx: 0,
         }
     }
@@ -168,13 +167,24 @@ impl Project {
     }
 
     pub fn load(filepath: String) -> Result<Self, KanbanError> {
-        let json = std::fs::read_to_string(filepath)?;
-        Self::load_from_json(&json)
+        let mut file = OpenOptions::new()
+            .write(true)
+            .read(true)
+            .create(true)
+            .open(&filepath)?;
+
+        let mut json = String::new();
+        file.read_to_string(&mut json)?;
+        if json.is_empty() {
+            Ok(Project::new("", filepath))
+        } else {
+            Self::load_from_json(&json)
+        }
     }
 
     pub fn save(&self) {
         let json = serde_json::to_string_pretty(&self).unwrap();
-        std::fs::write("kanban-tui.json", json).unwrap();
+        std::fs::write(&self.filepath, json).unwrap();
     }
 
     pub fn get_selected_column(&self) -> &Column {

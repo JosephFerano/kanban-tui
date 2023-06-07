@@ -1,3 +1,4 @@
+// #![deny(rust_2018_idioms)] 
 mod app;
 mod ui;
 mod input;

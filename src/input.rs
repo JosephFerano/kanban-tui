@@ -81,18 +81,8 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
                     KeyCode::Char('-') |
                     KeyCode::Char('K') => project.move_task_up(),
                     KeyCode::Char('n') => state.task_edit_state = Some(TaskState::default()),
-                    KeyCode::Char('e') => {
-                        if let Some(task) = column.get_selected_task() {
-                            let task_state =
-                                TaskState {
-                                    title: TextArea::from(task.title.lines()),
-                                    description: TextArea::from(task.description.lines()),
-                                    focus: TaskEditFocus::Title,
-                                    is_edit: true
-                                };
-                            state.task_edit_state = Some(task_state);
-                        }
-                    }
+                    KeyCode::Char('e') =>
+                        state.task_edit_state = column.get_task_state_from_curr_selected_task(),
                     KeyCode::Char('D') => column.remove_task(),
                     _ => {}
                 }

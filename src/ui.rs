@@ -26,12 +26,15 @@ fn draw_tasks<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
                 let mut style = Style::default();
                 let col_idx = state.project.selected_column_idx;
                 let task_idx = state.project.get_selected_column().selected_task_idx;
+                let item_txt;
                 if i == col_idx && j == task_idx {
                     style = style.fg(Color::White).add_modifier(Modifier::BOLD);
+                    item_txt = format!("{} 👈", task.title);
                 } else {
                     style = style.fg(Color::White);
+                    item_txt = task.title.clone();
                 }
-                let mut s = Span::raw(task.title.as_str());
+                let mut s = Span::raw(item_txt);
                 s.style = style;
                 ListItem::new(vec![Spans::from(s)])
             })

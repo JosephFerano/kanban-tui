@@ -42,7 +42,7 @@ pub struct Project {
 pub enum KanbanError {
     #[error("There is something wrong with the json schema, it doesn't match Project struct")]
     BadJson,
-    #[error("Some form of IO error occured: {0}")]
+    #[error("IO - {0}")]
     Io(#[from] std::io::Error),
 }
 
@@ -167,8 +167,8 @@ impl Project {
         serde_json::from_str(json).map_err(|_| KanbanError::BadJson)
     }
 
-    pub fn load() -> Result<Self, KanbanError> {
-        let json = std::fs::read_to_string("kanban-tui.json")?;
+    pub fn load(filepath: String) -> Result<Self, KanbanError> {
+        let json = std::fs::read_to_string(filepath)?;
         Self::load_from_json(&json)
     }
 

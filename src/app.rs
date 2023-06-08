@@ -2,7 +2,7 @@
 // use int_enum::IntEnum;
 use serde::{Deserialize, Serialize};
 use std::cmp::min;
-use std::fs::OpenOptions;
+use std::fs::{File};
 use std::io::Read;
 use tui_textarea::TextArea;
 
@@ -166,17 +166,11 @@ impl Project {
         serde_json::from_str(json).map_err(|_| KanbanError::BadJson)
     }
 
-    pub fn load(filepath: String) -> Result<Self, KanbanError> {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .read(true)
-            .create(true)
-            .open(&filepath)?;
-
+    pub fn load(path: String, mut file: &File) -> Result<Self, KanbanError> {
         let mut json = String::new();
         file.read_to_string(&mut json)?;
         if json.is_empty() {
-            Ok(Project::new("", filepath))
+            Ok(Project::new("", path))
         } else {
             Self::load_from_json(&json)
         }

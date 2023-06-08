@@ -45,6 +45,7 @@ fn prompt_project_init(default_name: &str) -> (String, io::Result<File>) {
 
     let filename =
         match result {
+            Ok(b) if b == 0 => std::process::exit(0),
             Ok(b) if b > 0 && !input.is_empty() => input,
             _ => default_name
         };

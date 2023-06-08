@@ -110,7 +110,7 @@ impl<'a> Column {
 
     pub fn remove_task(&mut self) {
         self.tasks.remove(self.selected_task_idx);
-        self.select_previous_task();
+        self.select_next_task();
     }
 
     pub fn get_selected_task(&self) -> Option<&Task> {

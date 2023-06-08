@@ -49,7 +49,9 @@ fn draw_tasks<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
             .fg(Color::White);
         let block = Block::default().style(style).title(s).borders(Borders::ALL);
         let list = List::new(items).block(block);
-        f.render_widget(list, columns[i])
+        let mut list_state = ListState::default();
+        list_state.select(Some(column.selected_task_idx + 1));
+        f.render_stateful_widget(list, columns[i], &mut list_state);
     }
 }
 

@@ -4,12 +4,25 @@
 use kanban_tui::*;
 use crossterm::{
     event::*,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{
+        disable_raw_mode,
+        enable_raw_mode,
+        EnterAlternateScreen,
+        LeaveAlternateScreen
+    },
 };
-use std::{io::{self, Write}, env, path::PathBuf, fs::{File, OpenOptions}, error::Error};
+use std::{
+    io::{self, Write},
+    env,
+    path::PathBuf,
+    fs::{File, OpenOptions},
+    error::Error
+};
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 use clap::{Parser, ValueHint::FilePath};
+
+const DEFAULT_DATABASE_NAME: &str = "kanban.json";
 
 #[derive(Debug, Parser)]
 #[command(name = "kanban")]
@@ -19,8 +32,6 @@ pub struct CliArgs {
     /// Path to the
     pub filepath: Option<PathBuf>
 }
-
-const DEFAULT_DATABASE_NAME: &str = "kanban.json";
 
 fn prompt_project_init(default_name: &str) -> (String, io::Result<File>) {
     let mut input = String::new();

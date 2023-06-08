@@ -169,7 +169,7 @@ impl Project {
     pub fn load(path: String, mut file: &File) -> Result<Self, KanbanError> {
         let mut json = String::new();
         file.read_to_string(&mut json)?;
-        if json.is_empty() {
+        if json.trim().is_empty() {
             Ok(Project::new("", path))
         } else {
             Self::load_from_json(&json)

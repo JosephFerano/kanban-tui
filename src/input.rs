@@ -73,10 +73,12 @@ pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
                     KeyCode::Up        => column.select_previous_task(),
                     KeyCode::Char('l') |
                     KeyCode::Right     => { project.select_next_column(); },
-                    KeyCode::Char('<' | 'H') => project.move_task_previous_column(),
-                    KeyCode::Char('>' | 'L') => project.move_task_next_column(),
-                    KeyCode::Char('=' | 'J') => project.move_task_down(),
-                    KeyCode::Char('-' | 'K') => project.move_task_up(),
+                    KeyCode::Char('g') => column.select_first_task(),
+                    KeyCode::Char('G') => column.select_last_task(),
+                    KeyCode::Char('H') => project.move_task_previous_column(),
+                    KeyCode::Char('L') => project.move_task_next_column(),
+                    KeyCode::Char('J') => project.move_task_down(),
+                    KeyCode::Char('K') => project.move_task_up(),
                     KeyCode::Char('n') => state.task_edit_state = Some(TaskState::default()),
                     KeyCode::Char('e') =>
                         state.task_edit_state = column.get_task_state_from_curr_selected_task(),

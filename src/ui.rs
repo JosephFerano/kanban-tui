@@ -212,7 +212,23 @@ pub fn draw<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>) {
 
     let block = Block::default().title("KEYBINDINGS").borders(Borders::TOP);
 
-    let foot_txt = "q : Quit | ⏪🔽🔼⏩ or hjkl : Navigation | < > or H L : Shift task left/right | = - or J K : Shift task up/down";
+    // TODO: Cache this
+    let foot_txt = vec![
+        ("quit", "c"),
+        ("navigation", "hjkl"),
+        ("move task", "HJKL"),
+        ("new task", "n"),
+        ("edit task", "e"),
+        ("cycle edit fields", "Tab"),
+        ("column top", "g"),
+        ("column bottom", "G"),
+    ]
+        .iter()
+        .map(|(k, b)| {
+            format!("{k}: {b}")
+        })
+        .collect::<Vec<String>>()
+        .join(" | ");
     let footer = Paragraph::new(foot_txt).block(block);
     f.render_widget(footer, main_layout[3]);
 

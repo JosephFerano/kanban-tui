@@ -125,6 +125,10 @@ impl<'a> Column {
         *task_idx = min(*task_idx + 1, self.tasks.len().saturating_sub(1));
     }
 
+    pub fn select_first_task(&mut self) {
+        self.selected_task_idx = 0;
+    }
+
     pub fn select_last_task(&mut self) {
         self.selected_task_idx = self.tasks.len() - 1;
     }

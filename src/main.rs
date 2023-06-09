@@ -25,11 +25,13 @@ const DEFAULT_DATABASE_NAME: &str = "kanban.json";
 #[command(name = "kanban")]
 /// kanban-tui is a simple, interactive TUI based task manager using kanban columns
 pub struct CliArgs {
-    #[arg(short('d'), long("database"), value_name="DATABASE", value_hint=FilePath)]
+    #[arg(value_name="DATABASE", value_hint=FilePath, index=1)]
     /// Path to the
     pub filepath: Option<PathBuf>
 }
 
+// TODO: This should just return a struct beacuse we should add a
+// "should_quit" thing instead of calling exit(0) here
 fn prompt_project_init(default_name: &str) -> (String, io::Result<File>) {
     let mut input = String::new();
 

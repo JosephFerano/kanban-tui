@@ -1,25 +1,25 @@
-use crate::app::*;
+use crate::app::{State, TaskEditFocus};
 use tui::backend::Backend;
-use tui::layout::*;
+use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
-use tui::widgets::*;
+use tui::widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap};
 use tui::Frame;
 
-fn draw_tasks<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
+fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
     let columns = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(
             vec![
-                Constraint::Percentage(100 / state.project.columns.len() as u16);
+                Constraint::Percentage(100 / u16::try_from(state.project.columns.len()).unwrap());
                 state.project.columns.len()
             ]
             .as_ref(),
         )
-        .split(*area);
+        .split(area);
 
     for (i, column) in state.project.columns.iter().enumerate() {
-        let items: Vec<ListItem> = column.tasks
+        let items: Vec<ListItem<'_>> = column.tasks
             .iter()
             .enumerate()
             .map(|(j, task)| {
@@ -55,16 +55,16 @@ fn draw_tasks<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
     }
 }
 
-fn draw_task_info<B: Backend>(f: &mut Frame<B>, area: &Rect, state: &AppState) {
+fn draw_task_info<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
     let block = Block::default().title("TASK INFO").borders(Borders::ALL);
     if let Some(task) = state.project.get_selected_column().get_selected_task() {
         let p = Paragraph::new(task.description.as_str())
             .block(block)
             .wrap(Wrap { trim: true });
-        f.render_widget(p, *area);
+        f.render_widget(p, area);
     } else {
         let p = Paragraph::new("No tasks for this column").block(block);
-        f.render_widget(p, *area);
+        f.render_widget(p, area);
     }
 }
 
@@ -94,7 +94,7 @@ fn centered_rect_for_popup(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
         .split(popup_layout[1])[1]
 }
 
-pub fn draw_task_popup<B: Backend>(f: &mut Frame<B>, state: &mut AppState, popup_title: &str) {
+pub fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, popup_title: &str) {
     let area = centered_rect_for_popup(45, 60, f.size());
     let block = Block::default()
         .title(popup_title)
@@ -189,7 +189,7 @@ pub fn draw_task_popup<B: Backend>(f: &mut Frame<B>, state: &mut AppState, popup
     }
 }
 
-pub fn draw<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
+pub fn draw<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>) {
     let main_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -206,9 +206,9 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, state: &mut AppState) {
     let block = Block::default().title("KANBAN BOARD").borders(Borders::ALL);
     f.render_widget(block, main_layout[0]);
 
-    draw_tasks(f, &main_layout[1], &state);
+    draw_tasks(f, main_layout[1], state);
 
-    draw_task_info(f, &main_layout[2], &state);
+    draw_task_info(f, main_layout[2], state);
 
     let block = Block::default().title("KEYBINDINGS").borders(Borders::TOP);
 

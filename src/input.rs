@@ -1,11 +1,11 @@
-#![allow(unused_imports)]
 use crossterm::event;
 use crossterm::event::{Event, KeyCode};
-use crate::app::{TaskState, AppState, TaskEditFocus};
-use std::io::{stdout, Write};
-use tui_textarea::TextArea;
+use crate::app::{TaskState, State, TaskEditFocus};
 
-pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
+/// # Errors
+///
+/// Crossterm `event::read()` might return an error
+pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
     let project = &mut state.project;
     let column = project.get_selected_column_mut();
     if let Event::Key(key) = event::read()? {
@@ -35,7 +35,7 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
                             KeyCode::BackTab => task.focus = TaskEditFocus::Description,
                             KeyCode::Enter => {
                                 let title = task.title.clone().into_lines().join("\n");
-                                let description = task.description.clone().into_lines().clone().join("\n");
+                                let description = task.description.clone().into_lines().join("\n");
                                 if task.is_edit {
                                     if let Some(selected_task) = column.get_selected_task_mut() {
                                         selected_task.title = title;
@@ -55,7 +55,7 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
                             KeyCode::Tab => task.focus = TaskEditFocus::Title,
                             KeyCode::BackTab => task.focus = TaskEditFocus::ConfirmBtn,
                             KeyCode::Enter => {
-                                state.task_edit_state = None
+                                state.task_edit_state = None;
                             }
                             _ => (),
                         }
@@ -73,14 +73,10 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
                     KeyCode::Up        => column.select_previous_task(),
                     KeyCode::Char('l') |
                     KeyCode::Right     => { project.select_next_column(); },
-                    KeyCode::Char('<') |
-                    KeyCode::Char('H') => project.move_task_previous_column(),
-                    KeyCode::Char('>') |
-                    KeyCode::Char('L') => project.move_task_next_column(),
-                    KeyCode::Char('=') |
-                    KeyCode::Char('J') => project.move_task_down(),
-                    KeyCode::Char('-') |
-                    KeyCode::Char('K') => project.move_task_up(),
+                    KeyCode::Char('<' | 'H') => project.move_task_previous_column(),
+                    KeyCode::Char('>' | 'L') => project.move_task_next_column(),
+                    KeyCode::Char('=' | 'J') => project.move_task_down(),
+                    KeyCode::Char('-' | 'K') => project.move_task_up(),
                     KeyCode::Char('n') => state.task_edit_state = Some(TaskState::default()),
                     KeyCode::Char('e') =>
                         state.task_edit_state = column.get_task_state_from_curr_selected_task(),
@@ -95,4 +91,3 @@ pub fn handle_input(state: &mut AppState) -> Result<(), std::io::Error> {
     }
     Ok(())
 }
-

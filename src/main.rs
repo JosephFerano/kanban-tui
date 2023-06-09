@@ -1,9 +1,7 @@
 #![deny(rust_2018_idioms)]
-#![allow(unused_imports)]
-#![allow(dead_code)]
-use kanban_tui::*;
+use kanban_tui::{Project, State};
 use crossterm::{
-    event::*,
+    event::{DisableMouseCapture, EnableMouseCapture},
     terminal::{
         disable_raw_mode,
         enable_raw_mode,
@@ -13,7 +11,6 @@ use crossterm::{
 };
 use std::{
     io::{self, Write},
-    env,
     path::PathBuf,
     fs::{File, OpenOptions},
     error::Error
@@ -37,7 +34,7 @@ fn prompt_project_init(default_name: &str) -> (String, io::Result<File>) {
     let mut input = String::new();
 
     println!("Database not found, select the name of the database if it exists or enter a name to start a new project");
-    print!("Database name (default: {}): ", default_name);
+    print!("Database name (default: {default_name}): ");
     io::stdout().flush().unwrap();
 
     let result = io::stdin().read_line(&mut input);
@@ -71,12 +68,11 @@ fn main() -> anyhow::Result<(), Box<dyn Error>> {
                     .read(true)
                     .open(&fpath);
 
-                match file {
-                    Ok(f) => (fpath, f),
-                    Err(_) => {
-                        let (fp, fname) = prompt_project_init(&fpath);
-                        (fp, fname.unwrap())
-                    }
+                if let Ok(f) = file {
+                    (fpath, f)
+                } else {
+                    let (fp, fname) = prompt_project_init(&fpath);
+                    (fp, fname.unwrap())
                 }
             },
             CliArgs { filepath: None } => {
@@ -92,7 +88,7 @@ fn main() -> anyhow::Result<(), Box<dyn Error>> {
                 }
             }
         };
-    let mut state = AppState::new(Project::load(filepath, &file)?);
+    let mut state = State::new(Project::load(filepath, &file)?);
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -102,7 +98,7 @@ fn main() -> anyhow::Result<(), Box<dyn Error>> {
 
     while !state.quit {
         terminal.draw(|f| kanban_tui::draw(f, &mut state))?;
-        kanban_tui::handle_input(&mut state)?;
+        kanban_tui::handle(&mut state)?;
     }
 
     // state.project.save();

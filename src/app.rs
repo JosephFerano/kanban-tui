@@ -17,19 +17,10 @@ pub struct Column {
 }
 
 // #[derive(Deserialize, Serialize, Debug, Clone, Copy)]
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Default, Deserialize, Serialize, Debug)]
 pub struct Task {
     pub title: String,
     pub description: String,
-}
-
-impl Default for Task {
-    fn default() -> Self {
-        Task {
-            title: String::new(),
-            description: String::new(),
-        }
-    }
 }
 
 /// Type used mainly for serialization at this time
@@ -75,16 +66,17 @@ impl Default for TaskState<'_> {
     }
 }
 
-pub struct AppState<'a> {
+pub struct State<'a> {
     pub project: Project,
     pub quit: bool,
     pub columns: Vec<Column>,
     pub task_edit_state: Option<TaskState<'a>>,
 }
 
-impl AppState<'_> {
+impl State<'_> {
+    #[must_use]
     pub fn new(project: Project) -> Self {
-        AppState {
+        State {
             quit: false,
             task_edit_state: None,
             project,
@@ -94,6 +86,7 @@ impl AppState<'_> {
 }
 
 impl<'a> Column {
+    #[must_use]
     pub fn new(name: &str) -> Self {
         Column {
             name: name.to_owned(),
@@ -113,6 +106,7 @@ impl<'a> Column {
         self.select_next_task();
     }
 
+    #[must_use]
     pub fn get_selected_task(&self) -> Option<&Task> {
         self.tasks.get(self.selected_task_idx)
     }
@@ -123,18 +117,19 @@ impl<'a> Column {
 
     pub fn select_previous_task(&mut self) {
         let task_idx = &mut self.selected_task_idx;
-        *task_idx = task_idx.saturating_sub(1)
+        *task_idx = task_idx.saturating_sub(1);
     }
 
     pub fn select_next_task(&mut self) {
         let task_idx = &mut self.selected_task_idx;
-        *task_idx = min(*task_idx + 1, self.tasks.len().saturating_sub(1))
+        *task_idx = min(*task_idx + 1, self.tasks.len().saturating_sub(1));
     }
 
     pub fn select_last_task(&mut self) {
         self.selected_task_idx = self.tasks.len() - 1;
     }
 
+    #[must_use]
     pub fn get_task_state_from_curr_selected_task(&self) -> Option<TaskState<'a>> {
         self.get_selected_task().map(|t| {
             TaskState {
@@ -148,6 +143,7 @@ impl<'a> Column {
 }
 
 impl Project {
+    #[must_use]
     pub fn new(name: &str, filepath: String) -> Self {
         Project {
             name: name.to_owned(),
@@ -166,6 +162,9 @@ impl Project {
         serde_json::from_str(json).map_err(|_| KanbanError::BadJson)
     }
 
+    /// # Errors
+    ///
+    /// Will return `Err` if `file` contains json that doesn't match State schema
     pub fn load(path: String, mut file: &File) -> Result<Self, KanbanError> {
         let mut json = String::new();
         file.read_to_string(&mut json)?;
@@ -176,11 +175,16 @@ impl Project {
         }
     }
 
+    /// # Panics
+    ///
+    /// Will panic if there's an error serializing the Json or there's an issue
+    /// writing the file
     pub fn save(&self) {
         let json = serde_json::to_string_pretty(&self).unwrap();
         std::fs::write(&self.filepath, json).unwrap();
     }
 
+    #[must_use]
     pub fn get_selected_column(&self) -> &Column {
         &self.columns[self.selected_column_idx]
     }
@@ -211,7 +215,7 @@ impl Project {
         } else {
             col_idx > 0
         };
-        if cond && column.tasks.len() > 0 {
+        if cond && !column.tasks.is_empty() {
             let t = column.tasks.remove(column.selected_task_idx);
             column.select_previous_task();
             if move_next {
@@ -227,18 +231,18 @@ impl Project {
     }
 
     pub fn move_task_previous_column(&mut self) {
-        self.move_task_to_column(false)
+        self.move_task_to_column(false);
     }
 
     pub fn move_task_next_column(&mut self) {
-        self.move_task_to_column(true)
+        self.move_task_to_column(true);
     }
 
     pub fn move_task_up(&mut self) {
         let column = self.get_selected_column_mut();
         if column.selected_task_idx > 0 {
             column.tasks.swap(column.selected_task_idx, column.selected_task_idx - 1);
-            column.selected_task_idx = column.selected_task_idx - 1;
+            column.selected_task_idx -= 1;
             self.save();
         }
     }
@@ -247,7 +251,7 @@ impl Project {
         let column = self.get_selected_column_mut();
         if column.selected_task_idx < column.tasks.len() - 1 {
             column.tasks.swap(column.selected_task_idx, column.selected_task_idx + 1);
-            column.selected_task_idx = column.selected_task_idx + 1;
+            column.selected_task_idx += 1;
             self.save();
         }
     }

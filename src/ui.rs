@@ -189,6 +189,13 @@ pub fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, 
     }
 }
 
+/// Macro to generate keybindings string at compile time
+macro_rules! unroll {
+    (($first_a:literal, $first_b:literal), $(($a:literal, $b:literal)),*) => {
+        concat!(concat!($first_a, ": ", $first_b) $(," | ", concat!($a, ": ", $b))*)
+    };
+}
+
 pub fn draw<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>) {
     let main_layout = Layout::default()
         .direction(Direction::Vertical)
@@ -212,8 +219,7 @@ pub fn draw<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>) {
 
     let block = Block::default().title("KEYBINDINGS").borders(Borders::TOP);
 
-    // TODO: Cache this
-    let foot_txt = vec![
+    let foot_txt = unroll![
         ("quit", "c"),
         ("navigation", "hjkl"),
         ("move task", "HJKL"),
@@ -221,14 +227,9 @@ pub fn draw<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>) {
         ("edit task", "e"),
         ("cycle edit fields", "Tab"),
         ("column top", "g"),
-        ("column bottom", "G"),
-    ]
-        .iter()
-        .map(|(k, b)| {
-            format!("{k}: {b}")
-        })
-        .collect::<Vec<String>>()
-        .join(" | ");
+        ("column bottom", "G")
+    ];
+
     let footer = Paragraph::new(foot_txt).block(block);
     f.render_widget(footer, main_layout[3]);
 

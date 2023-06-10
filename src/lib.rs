@@ -1,8 +1,8 @@
 #![deny(rust_2018_idioms)]
 mod app;
-mod ui;
 mod input;
+mod ui;
 
 pub use app::*;
-pub use ui::draw;
 pub use input::handle;
+pub use ui::draw;

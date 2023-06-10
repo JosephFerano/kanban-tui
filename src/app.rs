@@ -2,7 +2,7 @@
 // use int_enum::IntEnum;
 use serde::{Deserialize, Serialize};
 use std::cmp::min;
-use std::fs::{File};
+use std::fs::File;
 use std::io::Read;
 use tui_textarea::TextArea;
 
@@ -29,7 +29,7 @@ pub struct Project {
     pub name: String,
     pub filepath: String,
     pub selected_column_idx: usize,
-    pub columns: Vec<Column>
+    pub columns: Vec<Column>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -52,7 +52,7 @@ pub struct TaskState<'a> {
     pub title: TextArea<'a>,
     pub description: TextArea<'a>,
     pub focus: TaskEditFocus,
-    pub is_edit: bool
+    pub is_edit: bool,
 }
 
 impl Default for TaskState<'_> {
@@ -61,7 +61,7 @@ impl Default for TaskState<'_> {
             title: TextArea::default(),
             description: TextArea::default(),
             focus: TaskEditFocus::Title,
-            is_edit: false
+            is_edit: false,
         }
     }
 }
@@ -135,13 +135,11 @@ impl<'a> Column {
 
     #[must_use]
     pub fn get_task_state_from_curr_selected_task(&self) -> Option<TaskState<'a>> {
-        self.get_selected_task().map(|t| {
-            TaskState {
-                title: TextArea::from(t.title.lines()),
-                description: TextArea::from(t.description.lines()),
-                focus: TaskEditFocus::Title,
-                is_edit: true
-            }
+        self.get_selected_task().map(|t| TaskState {
+            title: TextArea::from(t.title.lines()),
+            description: TextArea::from(t.description.lines()),
+            focus: TaskEditFocus::Title,
+            is_edit: true,
         })
     }
 }
@@ -203,10 +201,7 @@ impl Project {
     }
 
     pub fn select_next_column(&mut self) -> &Column {
-        self.selected_column_idx = min(
-            self.selected_column_idx + 1,
-            self.columns.len() - 1,
-        );
+        self.selected_column_idx = min(self.selected_column_idx + 1, self.columns.len() - 1);
         &self.columns[self.selected_column_idx]
     }
 
@@ -245,7 +240,9 @@ impl Project {
     pub fn move_task_up(&mut self) {
         let column = self.get_selected_column_mut();
         if column.selected_task_idx > 0 {
-            column.tasks.swap(column.selected_task_idx, column.selected_task_idx - 1);
+            column
+                .tasks
+                .swap(column.selected_task_idx, column.selected_task_idx - 1);
             column.selected_task_idx -= 1;
             self.save();
         }
@@ -254,7 +251,9 @@ impl Project {
     pub fn move_task_down(&mut self) {
         let column = self.get_selected_column_mut();
         if column.selected_task_idx < column.tasks.len() - 1 {
-            column.tasks.swap(column.selected_task_idx, column.selected_task_idx + 1);
+            column
+                .tasks
+                .swap(column.selected_task_idx, column.selected_task_idx + 1);
             column.selected_task_idx += 1;
             self.save();
         }

@@ -19,7 +19,8 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
         .split(area);
 
     for (i, column) in state.project.columns.iter().enumerate() {
-        let items: Vec<ListItem<'_>> = column.tasks
+        let items: Vec<ListItem<'_>> = column
+            .tasks
             .iter()
             .enumerate()
             .map(|(j, task)| {
@@ -123,7 +124,7 @@ pub fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, 
                 [
                     Constraint::Percentage(80),
                     Constraint::Min(10),
-                    Constraint::Min(10)
+                    Constraint::Min(10),
                 ]
                 .as_ref(),
             )
@@ -167,7 +168,8 @@ pub fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, 
         task.title.set_block(b1);
         if let TaskEditFocus::Title = task.focus {
             task.title.set_style(Style::default().fg(Color::Yellow));
-            task.title.set_cursor_style(Style::default().add_modifier(Modifier::REVERSED));
+            task.title
+                .set_cursor_style(Style::default().add_modifier(Modifier::REVERSED));
         } else {
             task.title.set_style(Style::default());
             task.title.set_cursor_style(Style::default());
@@ -176,8 +178,10 @@ pub fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, 
 
         task.description.set_block(b2);
         if let TaskEditFocus::Description = task.focus {
-            task.description.set_style(Style::default().fg(Color::Yellow));
-            task.description.set_cursor_style(Style::default().add_modifier(Modifier::REVERSED));
+            task.description
+                .set_style(Style::default().fg(Color::Yellow));
+            task.description
+                .set_cursor_style(Style::default().add_modifier(Modifier::REVERSED));
         } else {
             task.description.set_style(Style::default());
             task.description.set_cursor_style(Style::default());

@@ -1,6 +1,7 @@
 // use indexmap::IndexMap;
 // use int_enum::IntEnum;
 use serde::{Deserialize, Serialize};
+use sqlx::SqlitePool;
 use std::cmp::min;
 use std::fs::File;
 use std::io::Read;
@@ -16,8 +17,7 @@ pub struct Column {
     pub tasks: Vec<Task>,
 }
 
-// #[derive(Deserialize, Serialize, Debug, Clone, Copy)]
-#[derive(Default, Deserialize, Serialize, Debug)]
+#[derive(Default, Deserialize, Serialize, Debug, sqlx::FromRow)]
 pub struct Task {
     pub title: String,
     pub description: String,
@@ -68,6 +68,7 @@ impl Default for TaskState<'_> {
 
 pub struct State<'a> {
     pub project: Project,
+    pub db_pool: SqlitePool,
     pub quit: bool,
     pub columns: Vec<Column>,
     pub task_edit_state: Option<TaskState<'a>>,
@@ -75,10 +76,11 @@ pub struct State<'a> {
 
 impl State<'_> {
     #[must_use]
-    pub fn new(project: Project) -> Self {
+    pub fn new(db_pool: SqlitePool, project: Project) -> Self {
         State {
             quit: false,
             task_edit_state: None,
+            db_pool,
             project,
             columns: vec![],
         }

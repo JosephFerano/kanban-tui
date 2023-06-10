@@ -87,21 +87,9 @@ async fn main() -> anyhow::Result<(), Box<dyn Error>> {
         }
     };
 
-    let pool = SqlitePool::connect("sqlite:db.sqlite").await?;
+    let db_pool = SqlitePool::connect("sqlite:db.sqlite").await?;
 
-    let stuff = sqlx::query!(
-        r#"
-            select * from kanban
-        "#
-    )
-    .fetch_all(&pool)
-    .await?;
-
-    for item in stuff {
-        println!("{} - {} - {}", item.id, item.name, item.description);
-    }
-
-    let mut state = State::new(Project::load(filepath, &file)?);
+    let mut state = State::new(db_pool, Project::load(filepath, &file)?);
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();

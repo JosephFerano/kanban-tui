@@ -1,8 +1,8 @@
 #![deny(rust_2018_idioms)]
 mod app;
+mod db;
 mod input;
 mod ui;
-mod db;
 
 pub use app::*;
 pub use db::*;

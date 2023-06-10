@@ -59,7 +59,7 @@ fn prompt_project_init(default_name: &str) -> (String, io::Result<File>) {
 
 #[async_std::main]
 async fn main() -> anyhow::Result<(), Box<dyn Error>> {
-    let (filepath, file) = match CliArgs::parse() {
+    let (_filepath, _file) = match CliArgs::parse() {
         CliArgs {
             filepath: Some(filepath),
         } => {
@@ -89,7 +89,8 @@ async fn main() -> anyhow::Result<(), Box<dyn Error>> {
 
     let db_pool = SqlitePool::connect("sqlite:db.sqlite").await?;
 
-    let mut state = State::new(db_pool, Project::load(filepath, &file)?);
+    let project = Project::load2(&db_pool).await?;
+    let mut state = State::new(db_pool, project);
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();

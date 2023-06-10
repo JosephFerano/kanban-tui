@@ -1,5 +1,6 @@
 // use indexmap::IndexMap;
 // use int_enum::IntEnum;
+use crate::get_all_tasks;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::cmp::min;
@@ -17,7 +18,7 @@ pub struct Column {
     pub tasks: Vec<Task>,
 }
 
-#[derive(Default, Deserialize, Serialize, Debug, sqlx::FromRow)]
+#[derive(Clone, Default, Deserialize, Serialize, Debug, sqlx::FromRow)]
 pub struct Task {
     pub title: String,
     pub description: String,
@@ -177,6 +178,25 @@ impl Project {
         } else {
             Self::load_from_json(&json)
         }
+    }
+
+    pub async fn load2(pool: &SqlitePool) -> Result<Self, KanbanError> {
+        let todos = get_all_tasks(&pool).await.unwrap();
+
+        Ok(Project {
+            name: String::from("Kanban Board"),
+            filepath: String::from("path"),
+            columns: todos
+                .iter()
+                .map(|(cname, tasks)| Column {
+                    name: cname.clone(),
+                    // TODO: Figure out how to avoid cloning here
+                    tasks: tasks.to_vec(),
+                    selected_task_idx: 0,
+                })
+                .collect::<Vec<Column>>(),
+            selected_column_idx: 0,
+        })
     }
 
     /// # Panics

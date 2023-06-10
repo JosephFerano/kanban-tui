@@ -5,6 +5,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use kanban_tui::{Project, State};
+use sqlx::sqlite::SqlitePool;
 use std::{
     error::Error,
     fs::{File, OpenOptions},
@@ -85,6 +86,20 @@ async fn main() -> anyhow::Result<(), Box<dyn Error>> {
             }
         }
     };
+
+    let pool = SqlitePool::connect("sqlite:db.sqlite").await?;
+
+    let stuff = sqlx::query!(
+        r#"
+            select * from kanban
+        "#
+    )
+    .fetch_all(&pool)
+    .await?;
+
+    for item in stuff {
+        println!("{} - {} - {}", item.id, item.name, item.description);
+    }
 
     let mut state = State::new(Project::load(filepath, &file)?);
 

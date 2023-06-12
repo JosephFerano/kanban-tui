@@ -1,12 +1,14 @@
 // use indexmap::IndexMap;
 // use int_enum::IntEnum;
-use crate::get_all_tasks;
+// use crate::get_all_tasks;
+use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
 use std::cmp::min;
 use std::fs::File;
 use std::io::Read;
 use tui_textarea::TextArea;
+
+use crate::get_all_tasks;
 
 #[cfg(test)]
 mod tests;
@@ -18,7 +20,7 @@ pub struct Column {
     pub tasks: Vec<Task>,
 }
 
-#[derive(Clone, Default, Deserialize, Serialize, Debug, sqlx::FromRow)]
+#[derive(Clone, Default, Deserialize, Serialize, Debug)]
 pub struct Task {
     pub title: String,
     pub description: String,
@@ -69,7 +71,7 @@ impl Default for TaskState<'_> {
 
 pub struct State<'a> {
     pub project: Project,
-    pub db_pool: SqlitePool,
+    pub db_pool: Connection,
     pub quit: bool,
     pub columns: Vec<Column>,
     pub task_edit_state: Option<TaskState<'a>>,
@@ -77,7 +79,7 @@ pub struct State<'a> {
 
 impl State<'_> {
     #[must_use]
-    pub fn new(db_pool: SqlitePool, project: Project) -> Self {
+    pub fn new(db_pool: Connection, project: Project) -> Self {
         State {
             quit: false,
             task_edit_state: None,
@@ -180,8 +182,8 @@ impl Project {
         }
     }
 
-    pub async fn load2(pool: &SqlitePool) -> Result<Self, KanbanError> {
-        let todos = get_all_tasks(&pool).await.unwrap();
+    pub async fn load2(pool: &Connection) -> Result<Self, KanbanError> {
+        let todos = get_all_tasks(&pool).unwrap();
 
         Ok(Project {
             name: String::from("Kanban Board"),

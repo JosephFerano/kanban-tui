@@ -1,4 +1,5 @@
 use crate::app::{State, TaskEditFocus, TaskState};
+use crate::{db};
 use crossterm::event;
 use crossterm::event::{Event, KeyCode};
 
@@ -41,7 +42,8 @@ pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
                                     selected_task.description = description;
                                 }
                             } else {
-                                column.add_task(title, description);
+                                let task = db::insert_new_task(&state.db_conn, title, description, &column);
+                                column.add_task(task);
                             }
                             state.task_edit_state = None;
                             project.save();
@@ -80,7 +82,8 @@ pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
                 }
                 KeyCode::Char('D') => {
                     column.remove_task();
-                    project.save();
+                    db::delete_task(&state.db_conn, column.get_selected_task().unwrap());
+                    // project.save();
                 }
                 _ => {}
             },

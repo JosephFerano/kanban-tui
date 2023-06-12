@@ -1,6 +1,5 @@
 // use indexmap::IndexMap;
 // use int_enum::IntEnum;
-// use crate::get_all_tasks;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::cmp::min;
@@ -22,6 +21,7 @@ pub struct Column {
 
 #[derive(Clone, Default, Deserialize, Serialize, Debug)]
 pub struct Task {
+    pub id: i64,
     pub title: String,
     pub description: String,
 }
@@ -71,7 +71,7 @@ impl Default for TaskState<'_> {
 
 pub struct State<'a> {
     pub project: Project,
-    pub db_pool: Connection,
+    pub db_conn: Connection,
     pub quit: bool,
     pub columns: Vec<Column>,
     pub task_edit_state: Option<TaskState<'a>>,
@@ -83,7 +83,7 @@ impl State<'_> {
         State {
             quit: false,
             task_edit_state: None,
-            db_pool,
+            db_conn: db_pool,
             project,
             columns: vec![],
         }
@@ -100,10 +100,9 @@ impl<'a> Column {
         }
     }
 
-    pub fn add_task(&mut self, title: String, description: String) {
-        let task = Task { title, description };
+    pub fn add_task(&mut self, task: Task) {
         self.tasks.push(task);
-        self.select_next_task();
+        self.select_last_task();
     }
 
     pub fn remove_task(&mut self) {

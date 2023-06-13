@@ -79,10 +79,17 @@ pub fn update_task_text(conn: &Connection, task: &Task) {
 
 pub fn move_task_to_column(conn: &Connection, task: &Task, target_column: &Column) {
     let mut stmt = conn
-        .prepare("update task set column_id = ?2, sort_order = ?3 where task.id = ?1")
+        .prepare(
+            "update task
+             set
+               column_id = ?2,
+               sort_order = 1 +
+                 (select sort_order from task
+                  where column_id = ?2 order by sort_order desc limit 1)
+             where task.id = ?1",
+        )
         .unwrap();
-    stmt.execute((&task.id, &target_column.id, &target_column.tasks.len()))
-        .unwrap();
+    stmt.execute((&task.id, &target_column.id)).unwrap();
 }
 
 pub fn swap_task_order(conn: &mut Connection, task1: &Task, task2: &Task) {
@@ -93,12 +100,14 @@ pub fn swap_task_order(conn: &mut Connection, task1: &Task, task2: &Task) {
         &[&task1.id],
     )
     .unwrap();
+
     tx.execute(
         "update task set sort_order = (select sort_order from task where id = ?2)
          where id = ?1",
         (task1.id, task2.id),
     )
     .unwrap();
+
     tx.execute(
         "update task set sort_order = (select sort_order from temp_order) where id = ?1",
         &[&task2.id],

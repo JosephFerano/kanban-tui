@@ -90,7 +90,7 @@ async fn main() -> anyhow::Result<(), Box<dyn Error>> {
     let db_pool = Connection::open("db.sqlite")?;
 
     // let project = Project::load(_filepath, &_file)?;
-    let project = Project::load2(&db_pool).await?;
+    let project = Project::load(&db_pool).await?;
     let mut state = State::new(db_pool, project);
 
     enable_raw_mode()?;

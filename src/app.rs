@@ -3,8 +3,6 @@
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::cmp::min;
-use std::fs::File;
-use std::io::Read;
 use tui_textarea::TextArea;
 
 use crate::db;
@@ -184,39 +182,7 @@ impl<'a> Column {
 }
 
 impl Project {
-    #[must_use]
-    pub fn new(name: &str, filepath: String) -> Self {
-        Project {
-            name: name.to_owned(),
-            filepath,
-            columns: vec![
-                Column::new("Todo"),
-                Column::new("InProgress"),
-                Column::new("Done"),
-                Column::new("Ideas"),
-            ],
-            selected_column_idx: 0,
-        }
-    }
-
-    fn load_from_json(json: &str) -> Result<Self, KanbanError> {
-        serde_json::from_str(json).map_err(|_| KanbanError::BadJson)
-    }
-
-    /// # Errors
-    ///
-    /// Will return `Err` if `file` contains json that doesn't match State schema
-    pub fn load(path: String, mut file: &File) -> Result<Self, KanbanError> {
-        let mut json = String::new();
-        file.read_to_string(&mut json)?;
-        if json.trim().is_empty() {
-            Ok(Project::new("", path))
-        } else {
-            Self::load_from_json(&json)
-        }
-    }
-
-    pub async fn load2(pool: &Connection) -> Result<Self, KanbanError> {
+    pub async fn load(pool: &Connection) -> Result<Self, KanbanError> {
         let columns = db::get_all_columns(&pool).unwrap();
 
         Ok(Project {

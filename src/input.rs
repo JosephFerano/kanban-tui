@@ -146,9 +146,7 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
             }
         }
         KeyCode::Char('n') => state.task_edit_state = Some(TaskState::default()),
-        KeyCode::Char('e') => {
-            state.task_edit_state = column.get_task_state_from_curr_selected_task();
-        }
+        KeyCode::Char('e') => state.task_edit_state = column.get_task_state_from_current(),
         KeyCode::Char('D') => {
             if !column.tasks.is_empty() {
                 db::delete_task(&state.db_conn, column.get_selected_task().unwrap());
@@ -173,9 +171,9 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
 /// Shouldn't really panic because there are checks to ensure we can unwrap safely
 pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
     if let Event::Key(key) = event::read()? {
-        if let Some(_) = state.task_edit_state {
-            let mut column = state.project.get_selected_column_mut();
-            handle_task_edit(&state.db_conn, &mut column, key, &mut state.task_edit_state);
+        if state.task_edit_state.is_some() {
+            let column = state.project.get_selected_column_mut();
+            handle_task_edit(&state.db_conn, column, key, &mut state.task_edit_state);
         } else {
             handle_main(state, key);
         }

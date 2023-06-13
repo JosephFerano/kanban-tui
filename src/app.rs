@@ -159,7 +159,7 @@ impl<'a> Column {
     }
 
     #[must_use]
-    pub fn get_task_state_from_curr_selected_task(&self) -> Option<TaskState<'a>> {
+    pub fn get_task_state_from_current(&self) -> Option<TaskState<'a>> {
         self.get_selected_task().map(|t| TaskState {
             title: TextArea::from(t.title.lines()),
             description: TextArea::from(t.description.lines()),

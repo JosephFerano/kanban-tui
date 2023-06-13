@@ -151,6 +151,7 @@ pub fn swap_task_order(conn: &mut Connection, task1: &Task, task2: &Task) {
     tx.commit().unwrap();
 }
 
+/// # Panics
 ///
 /// Panics if something goes wrong with the SQL
 pub fn set_selected_column(conn: &Connection, column_id: usize) {
@@ -161,19 +162,21 @@ pub fn set_selected_column(conn: &Connection, column_id: usize) {
         .unwrap();
 }
 
+/// # Panics
 ///
 /// Panics if something goes wrong with the SQL
 pub fn get_selected_column(conn: &Connection) -> usize {
     let mut stmt = conn
         .prepare("select value from app_state where key = ?1")
         .unwrap();
-    stmt.query_row(&["selected_column"], |row| {
+    stmt.query_row(["selected_column"], |row| {
         let value: String = row.get::<usize, String>(0).unwrap();
         Ok(value.parse::<usize>().unwrap())
     })
     .unwrap()
 }
 
+/// # Panics
 ///
 /// Panics if something goes wrong with the SQL
 pub fn set_selected_task_for_column(conn: &Connection, task_idx: usize, column_id: i32) {
@@ -183,6 +186,7 @@ pub fn set_selected_task_for_column(conn: &Connection, task_idx: usize, column_i
     stmt.execute((column_id, task_idx)).unwrap();
 }
 
+/// # Panics
 ///
 /// Panics if something goes wrong with the SQL
 pub fn get_selected_task_for_column(conn: &Connection, column_id: i32) -> usize {

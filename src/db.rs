@@ -1,6 +1,11 @@
 use crate::{Column, Task};
 use rusqlite::{params, Connection, Result};
 
+/// .
+///
+/// # Errors
+///
+/// This function will return an error if something is wrong with the SQL
 pub fn get_tasks_by_column(conn: &Connection, column_name: &String) -> Result<Vec<Task>> {
     let mut stmt = conn.prepare(
         r#"
@@ -11,7 +16,7 @@ pub fn get_tasks_by_column(conn: &Connection, column_name: &String) -> Result<Ve
         "#,
     )?;
     let mut tasks = Vec::new();
-    let rows = stmt.query_map(&[column_name], |row| {
+    let rows = stmt.query_map([column_name], |row| {
         Ok(Task {
             id: row.get(0)?,
             title: row.get(1)?,
@@ -24,6 +29,11 @@ pub fn get_tasks_by_column(conn: &Connection, column_name: &String) -> Result<Ve
     Ok(tasks)
 }
 
+/// .
+///
+/// # Errors
+///
+/// This function will return an error if there are issues with the SQL
 pub fn get_all_columns(conn: &Connection) -> Result<Vec<Column>> {
     let mut stmt = conn.prepare("select id, name from kb_column")?;
     let query_rows = stmt.query_map((), |row| {
@@ -33,11 +43,11 @@ pub fn get_all_columns(conn: &Connection) -> Result<Vec<Column>> {
     for row in query_rows {
         let r = &row?;
         let name = &r.1;
-        let tasks = get_tasks_by_column(conn, &name).unwrap();
+        let tasks = get_tasks_by_column(conn, name)?;
         let col = Column {
             id: r.0,
             name: name.clone(),
-            tasks: tasks,
+            tasks,
             selected_task_idx: 0,
         };
         columns.push(col);
@@ -45,6 +55,11 @@ pub fn get_all_columns(conn: &Connection) -> Result<Vec<Column>> {
     Ok(columns)
 }
 
+/// .
+///
+/// # Panics
+///
+/// Panics if something goes wrong with the SQL
 pub fn insert_new_task(
     conn: &Connection,
     title: String,
@@ -64,11 +79,21 @@ pub fn insert_new_task(
     }
 }
 
+/// .
+///
+/// # Panics
+///
+/// Panics if something goes wrong with the SQL
 pub fn delete_task(conn: &Connection, task: &Task) {
     let mut stmt = conn.prepare("delete from task where id = ?1").unwrap();
     stmt.execute([task.id]).unwrap();
 }
 
+/// .
+///
+/// # Panics
+///
+/// Panics if something goes wrong with the SQL
 pub fn update_task_text(conn: &Connection, task: &Task) {
     let mut stmt = conn
         .prepare("update task set title = ?2, description = ?3 where id = ?1")
@@ -77,6 +102,11 @@ pub fn update_task_text(conn: &Connection, task: &Task) {
         .unwrap();
 }
 
+/// .
+///
+/// # Panics
+///
+/// Panics if something goes wrong with the SQL
 pub fn move_task_to_column(conn: &Connection, task: &Task, target_column: &Column) {
     let mut stmt = conn
         .prepare(
@@ -93,12 +123,17 @@ pub fn move_task_to_column(conn: &Connection, task: &Task, target_column: &Colum
     stmt.execute((&task.id, &target_column.id)).unwrap();
 }
 
+/// .
+///
+/// # Panics
+///
+/// Panics if something goes wrong with the SQL
 pub fn swap_task_order(conn: &mut Connection, task1: &Task, task2: &Task) {
     let tx = conn.transaction().unwrap();
 
     tx.execute(
         "create temp table temp_order as select sort_order from task where id = ?1",
-        &[&task1.id],
+        [&task1.id],
     )
     .unwrap();
 
@@ -111,7 +146,7 @@ pub fn swap_task_order(conn: &mut Connection, task1: &Task, task2: &Task) {
 
     tx.execute(
         "update task set sort_order = (select sort_order from temp_order) where id = ?1",
-        &[&task2.id],
+        [&task2.id],
     )
     .unwrap();
     tx.execute("drop table temp_order", ()).unwrap();

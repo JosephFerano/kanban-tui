@@ -2,7 +2,7 @@
 // use int_enum::IntEnum;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use std::cmp::min;
+use std::{cmp::min, error::Error};
 use tui_textarea::TextArea;
 
 use crate::db;
@@ -29,7 +29,6 @@ pub struct Task {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Project {
     pub name: String,
-    pub filepath: String,
     pub selected_column_idx: usize,
     pub columns: Vec<Column>,
 }
@@ -182,12 +181,16 @@ impl<'a> Column {
 }
 
 impl Project {
-    pub async fn load(pool: &Connection) -> Result<Self, KanbanError> {
-        let columns = db::get_all_columns(&pool).unwrap();
+    /// .
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if it has issues reading from the database
+    pub fn load(conn: &Connection) -> Result<Self, Box<dyn Error>> {
+        let columns = db::get_all_columns(conn)?;
 
         Ok(Project {
             name: String::from("Kanban Board"),
-            filepath: String::from("path"),
             columns,
             selected_column_idx: 0,
         })

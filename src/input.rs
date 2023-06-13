@@ -6,6 +6,10 @@ use crossterm::event::{Event, KeyCode};
 /// # Errors
 ///
 /// Crossterm `event::read()` might return an error
+///
+/// # Panics
+///
+/// Shouldn't really panic because there are checks to ensure we can unwrap safely
 pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
     let project = &mut state.project;
     let column = project.get_selected_column_mut();
@@ -40,14 +44,14 @@ pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
                                 if let Some(selected_task) = column.get_selected_task_mut() {
                                     selected_task.title = title;
                                     selected_task.description = description;
-                                    db::update_task_text(&state.db_conn, &selected_task);
+                                    db::update_task_text(&state.db_conn, selected_task);
                                 }
                             } else {
                                 let task = db::insert_new_task(
                                     &state.db_conn,
                                     title,
                                     description,
-                                    &column,
+                                    column,
                                 );
                                 column.add_task(task);
                             }
@@ -82,7 +86,7 @@ pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
                         project.move_task_previous_column();
                         let col = project.get_selected_column();
                         let t = col.get_selected_task().unwrap();
-                        db::move_task_to_column(&state.db_conn, &t, &col);
+                        db::move_task_to_column(&state.db_conn, t, col);
                     }
                 }
                 KeyCode::Char('L') => {
@@ -90,26 +94,26 @@ pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
                         project.move_task_next_column();
                         let col = project.get_selected_column();
                         let t = col.get_selected_task().unwrap();
-                        db::move_task_to_column(&state.db_conn, &t, &col);
+                        db::move_task_to_column(&state.db_conn, t, col);
                     }
                 }
                 KeyCode::Char('J') => {
                     if column.move_task_down() {
                         let task1 = column.get_selected_task().unwrap();
                         let task2 = column.get_previous_task().unwrap();
-                        db::swap_task_order(&mut state.db_conn, &task1, &task2);
+                        db::swap_task_order(&mut state.db_conn, task1, task2);
                     }
                 }
                 KeyCode::Char('K') => {
                     if column.move_task_up() {
                         let task1 = column.get_selected_task().unwrap();
                         let task2 = column.get_next_task().unwrap();
-                        db::swap_task_order(&mut state.db_conn, &task1, &task2);
+                        db::swap_task_order(&mut state.db_conn, task1, task2);
                     }
                 }
                 KeyCode::Char('n') => state.task_edit_state = Some(TaskState::default()),
                 KeyCode::Char('e') => {
-                    state.task_edit_state = column.get_task_state_from_curr_selected_task()
+                    state.task_edit_state = column.get_task_state_from_curr_selected_task();
                 }
                 KeyCode::Char('D') => {
                     if !column.tasks.is_empty() {

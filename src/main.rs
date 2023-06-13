@@ -32,7 +32,7 @@ async fn main() -> anyhow::Result<(), Box<dyn Error>> {
 
     if migrate {
         let migrations = include_str!("../sql/migrations.sql");
-        let migrations: Vec<&str> = migrations.split(";").collect();
+        let migrations: Vec<&str> = migrations.split(';').collect();
         let tx = conn.transaction()?;
         for m in migrations {
             if !m.trim().is_empty() {
@@ -42,7 +42,7 @@ async fn main() -> anyhow::Result<(), Box<dyn Error>> {
         tx.commit()?;
     }
 
-    let project = Project::load(&conn).await?;
+    let project = Project::load(&conn)?;
     let mut state = State::new(conn, project);
 
     enable_raw_mode()?;

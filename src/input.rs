@@ -1,11 +1,17 @@
 use crate::app::{State, TaskEditFocus, TaskState};
-use crate::db;
+use crate::{db, Column};
 use crossterm::event;
 use crossterm::event::{Event, KeyCode};
+use rusqlite::Connection;
 
-pub fn handle_task_edit(state: &mut State<'_>, key: event::KeyEvent, mut task: TaskState<'_>) {
-    let project = &mut state.project;
-    let column = project.get_selected_column_mut();
+// pub fn handle_task_edit(state: &mut State<'_>, key: event::KeyEvent, mut task: TaskState<'_>) {
+pub fn handle_task_edit(
+    db_conn: &Connection,
+    column: &mut Column,
+    key: event::KeyEvent,
+    task_opt: &mut Option<TaskState<'_>>,
+) {
+    let mut task = task_opt.as_mut().unwrap();
     match task.focus {
         // TODO: Handle wrapping around the enum rather than doing it manually
         TaskEditFocus::Title => match key.code {
@@ -33,13 +39,13 @@ pub fn handle_task_edit(state: &mut State<'_>, key: event::KeyEvent, mut task: T
                     if let Some(selected_task) = column.get_selected_task_mut() {
                         selected_task.title = title;
                         selected_task.description = description;
-                        db::update_task_text(&state.db_conn, selected_task);
+                        db::update_task_text(db_conn, selected_task);
                     }
                 } else {
-                    let task = db::insert_new_task(&state.db_conn, title, description, column);
+                    let task = db::insert_new_task(db_conn, title, description, column);
                     column.add_task(task);
                 }
-                state.task_edit_state = None;
+                *task_opt = None;
             }
             _ => (),
         },
@@ -47,7 +53,7 @@ pub fn handle_task_edit(state: &mut State<'_>, key: event::KeyEvent, mut task: T
             KeyCode::Tab => task.focus = TaskEditFocus::Title,
             KeyCode::BackTab => task.focus = TaskEditFocus::ConfirmBtn,
             KeyCode::Enter => {
-                state.task_edit_state = None;
+                *task_opt = None;
             }
             _ => (),
         },
@@ -61,14 +67,44 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
         KeyCode::Char('q') => state.quit = true,
         KeyCode::Char('h') | KeyCode::Left => {
             project.select_previous_column();
+            db::set_selected_column(&state.db_conn, project.selected_column_idx);
         }
-        KeyCode::Char('j') | KeyCode::Down => column.select_next_task(),
-        KeyCode::Char('k') | KeyCode::Up => column.select_previous_task(),
+        KeyCode::Char('j') | KeyCode::Down => {
+            column.select_next_task();
+            db::set_selected_task_for_column(
+                &state.db_conn,
+                column.selected_task_idx,
+                project.get_selected_column().id,
+            );
+        }
+        KeyCode::Char('k') | KeyCode::Up => {
+            column.select_previous_task();
+            db::set_selected_task_for_column(
+                &state.db_conn,
+                column.selected_task_idx,
+                project.get_selected_column().id,
+            );
+        }
         KeyCode::Char('l') | KeyCode::Right => {
             project.select_next_column();
+            db::set_selected_column(&state.db_conn, project.selected_column_idx);
         }
-        KeyCode::Char('g') => column.select_first_task(),
-        KeyCode::Char('G') => column.select_last_task(),
+        KeyCode::Char('g') => {
+            column.select_first_task();
+            db::set_selected_task_for_column(
+                &state.db_conn,
+                column.selected_task_idx,
+                project.get_selected_column().id,
+            );
+        }
+        KeyCode::Char('G') => {
+            column.select_last_task();
+            db::set_selected_task_for_column(
+                &state.db_conn,
+                column.selected_task_idx,
+                project.get_selected_column().id,
+            );
+        }
         KeyCode::Char('H') => {
             if !column.tasks.is_empty() {
                 project.move_task_previous_column();
@@ -90,6 +126,11 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
                 let task1 = column.get_selected_task().unwrap();
                 let task2 = column.get_previous_task().unwrap();
                 db::swap_task_order(&mut state.db_conn, task1, task2);
+                db::set_selected_task_for_column(
+                    &state.db_conn,
+                    column.selected_task_idx,
+                    project.get_selected_column().id,
+                );
             }
         }
         KeyCode::Char('K') => {
@@ -97,6 +138,11 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
                 let task1 = column.get_selected_task().unwrap();
                 let task2 = column.get_next_task().unwrap();
                 db::swap_task_order(&mut state.db_conn, task1, task2);
+                db::set_selected_task_for_column(
+                    &state.db_conn,
+                    column.selected_task_idx,
+                    project.get_selected_column().id,
+                );
             }
         }
         KeyCode::Char('n') => state.task_edit_state = Some(TaskState::default()),
@@ -107,6 +153,11 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
             if !column.tasks.is_empty() {
                 db::delete_task(&state.db_conn, column.get_selected_task().unwrap());
                 column.remove_task();
+                db::set_selected_task_for_column(
+                    &state.db_conn,
+                    column.selected_task_idx,
+                    project.get_selected_column().id,
+                );
             }
         }
         _ => {}
@@ -122,8 +173,9 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
 /// Shouldn't really panic because there are checks to ensure we can unwrap safely
 pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
     if let Event::Key(key) = event::read()? {
-        if let Some(task) = state.task_edit_state.take() {
-            handle_task_edit(state, key, task);
+        if let Some(_) = state.task_edit_state {
+            let mut column = state.project.get_selected_column_mut();
+            handle_task_edit(&state.db_conn, &mut column, key, &mut state.task_edit_state);
         } else {
             handle_main(state, key);
         }

@@ -35,23 +35,19 @@ pub fn get_tasks_by_column(conn: &Connection, column_name: &String) -> Result<Ve
 ///
 /// This function will return an error if there are issues with the SQL
 pub fn get_all_columns(conn: &Connection) -> Result<Vec<Column>> {
-    let mut stmt = conn.prepare("select id, name from kb_column")?;
-    let query_rows = stmt.query_map((), |row| {
-        Ok((row.get::<usize, i64>(0)?, row.get::<usize, String>(1)?))
-    })?;
-    let mut columns: Vec<Column> = Vec::new();
-    for row in query_rows {
-        let r = &row?;
-        let name = &r.1;
-        let tasks = get_tasks_by_column(conn, name)?;
-        let col = Column {
-            id: r.0,
-            name: name.clone(),
-            tasks,
-            selected_task_idx: 0,
-        };
-        columns.push(col);
-    }
+    let mut stmt = conn.prepare("select id, name, selected_task from kb_column")?;
+    let columns = stmt
+        .query_map((), |row| {
+            let name = row.get(1)?;
+            Ok(Column {
+                id: row.get(0)?,
+                tasks: get_tasks_by_column(conn, &name)?,
+                name,
+                selected_task_idx: row.get(2)?,
+            })
+        })?
+        .filter_map(Result::ok)
+        .collect();
     Ok(columns)
 }
 
@@ -121,6 +117,7 @@ pub fn move_task_to_column(conn: &Connection, task: &Task, target_column: &Colum
         )
         .unwrap();
     stmt.execute((&task.id, &target_column.id)).unwrap();
+    set_selected_task_for_column(conn, target_column.selected_task_idx, target_column.id);
 }
 
 /// .
@@ -152,4 +149,45 @@ pub fn swap_task_order(conn: &mut Connection, task1: &Task, task2: &Task) {
     tx.execute("drop table temp_order", ()).unwrap();
 
     tx.commit().unwrap();
+}
+
+///
+/// Panics if something goes wrong with the SQL
+pub fn set_selected_column(conn: &Connection, column_id: usize) {
+    let mut stmt = conn
+        .prepare("insert or replace into app_state(key, value) values (?1, ?2)")
+        .unwrap();
+    stmt.execute((&"selected_column", column_id.to_string()))
+        .unwrap();
+}
+
+///
+/// Panics if something goes wrong with the SQL
+pub fn get_selected_column(conn: &Connection) -> usize {
+    let mut stmt = conn
+        .prepare("select value from app_state where key = ?1")
+        .unwrap();
+    stmt.query_row(&["selected_column"], |row| {
+        let value: String = row.get::<usize, String>(0).unwrap();
+        Ok(value.parse::<usize>().unwrap())
+    })
+    .unwrap()
+}
+
+///
+/// Panics if something goes wrong with the SQL
+pub fn set_selected_task_for_column(conn: &Connection, task_idx: usize, column_id: i32) {
+    let mut stmt = conn
+        .prepare("update kb_column set selected_task = ?2 where id = ?1")
+        .unwrap();
+    stmt.execute((column_id, task_idx)).unwrap();
+}
+
+///
+/// Panics if something goes wrong with the SQL
+pub fn get_selected_task_for_column(conn: &Connection, column_id: i32) -> usize {
+    let mut stmt = conn
+        .prepare("select selected_task from kb_column where key = ?1")
+        .unwrap();
+    stmt.query_row([column_id], |row| row.get(0)).unwrap()
 }

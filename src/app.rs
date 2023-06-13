@@ -12,7 +12,7 @@ mod tests;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Column {
-    pub id: i64,
+    pub id: i32,
     pub name: String,
     pub selected_task_idx: usize,
     pub tasks: Vec<Task>,
@@ -89,17 +89,6 @@ impl State<'_> {
 }
 
 impl<'a> Column {
-    #[must_use]
-    pub fn new(name: &str) -> Self {
-        Column {
-            // TODO: Get the right ID here
-            id: 1,
-            name: name.to_owned(),
-            tasks: vec![],
-            selected_task_idx: 0,
-        }
-    }
-
     pub fn add_task(&mut self, task: Task) {
         self.tasks.push(task);
         self.select_last_task();
@@ -188,11 +177,12 @@ impl Project {
     /// This function will return an error if it has issues reading from the database
     pub fn load(conn: &Connection) -> Result<Self, Box<dyn Error>> {
         let columns = db::get_all_columns(conn)?;
+        let selected_column = db::get_selected_column(conn);
 
         Ok(Project {
             name: String::from("Kanban Board"),
             columns,
-            selected_column_idx: 0,
+            selected_column_idx: selected_column,
         })
     }
 

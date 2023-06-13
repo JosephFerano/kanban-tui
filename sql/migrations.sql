@@ -18,10 +18,11 @@ create table if not exists kb_column
 );
 
 
-create table if not exists setting
+create table if not exists app_state
 (
     key text not null primary key,
     value text not null
 );
 
 insert into kb_column(name) values ("Todo"),("InProgress"),("Done"),("Ideas");
+insert into app_state(key, value) values ("selected_column", "0");

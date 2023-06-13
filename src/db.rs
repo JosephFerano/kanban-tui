@@ -90,21 +90,21 @@ pub fn swap_task_order(conn: &mut Connection, task1: &Task, task2: &Task) {
 
     tx.execute(
         "create temp table temp_order as select sort_order from task where id = ?1",
-        &[&task1.id]
+        &[&task1.id],
     )
     .unwrap();
     tx.execute(
-        "update task set sort_order = (select sort_order from task where id = ?2) where id = ?1",
-        (task1.id, task2.id)
+        "update task set sort_order = (select sort_order from task where id = ?2)
+         where id = ?1",
+        (task1.id, task2.id),
     )
     .unwrap();
     tx.execute(
         "update task set sort_order = (select sort_order from temp_order) where id = ?1",
-        &[&task2.id]
+        &[&task2.id],
     )
     .unwrap();
     tx.execute("drop table temp_order", ()).unwrap();
-
 
     tx.commit().unwrap();
 }

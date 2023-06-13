@@ -20,7 +20,8 @@ create table if not exists kb_column
 
 create table if not exists setting
 (
-    id integer primary key autoincrement,
-    name text not null,
+    key text not null primary key,
     value text not null
 );
+
+insert into kb_column(name) values ("Todo"),("InProgress"),("Done"),("Ideas");

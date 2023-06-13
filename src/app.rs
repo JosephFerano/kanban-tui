@@ -145,7 +145,7 @@ impl<'a> Column {
     }
 
     pub fn select_last_task(&mut self) {
-        self.selected_task_idx = self.tasks.len() - 1;
+        self.selected_task_idx = self.tasks.len().saturating_sub(1);
     }
 
     pub fn move_task_up(&mut self) -> bool {
@@ -160,7 +160,7 @@ impl<'a> Column {
     }
 
     pub fn move_task_down(&mut self) -> bool {
-        if self.selected_task_idx < self.tasks.len() - 1 {
+        if self.selected_task_idx < self.tasks.len().saturating_sub(1) {
             self.tasks
                 .swap(self.selected_task_idx, self.selected_task_idx + 1);
             self.selected_task_idx += 1;

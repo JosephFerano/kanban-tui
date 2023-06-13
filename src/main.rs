@@ -15,18 +15,32 @@ use tui::Terminal;
 /// kanban-tui is a simple, interactive TUI based task manager using kanban columns
 pub struct CliArgs {
     #[arg(value_name="DATABASE", value_hint=FilePath, index=1)]
-    /// Path to the
+    /// Path to the SQLite database
     pub filepath: Option<PathBuf>,
 }
 
+// TODO: We either make everything async or we remove the dependency
 #[async_std::main]
 async fn main() -> anyhow::Result<(), Box<dyn Error>> {
     let dbpath = CliArgs::parse()
         .filepath
-        .map(PathBuf::into_os_string)
-        .unwrap_or("kanban.db".into());
+        .unwrap_or(PathBuf::from("./kanban.db"));
 
-    let conn = Connection::open(dbpath)?;
+    let migrate = !dbpath.exists();
+
+    let mut conn = Connection::open(dbpath)?;
+
+    if migrate {
+        let migrations = include_str!("../sql/migrations.sql");
+        let migrations: Vec<&str> = migrations.split(";").collect();
+        let tx = conn.transaction()?;
+        for m in migrations {
+            if !m.trim().is_empty() {
+                tx.execute(m, ())?;
+            }
+        }
+        tx.commit()?;
+    }
 
     let project = Project::load(&conn).await?;
     let mut state = State::new(conn, project);

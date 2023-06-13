@@ -83,9 +83,10 @@ pub fn move_task_to_column(conn: &Connection, task: &Task, target_column: &Colum
             "update task
              set
                column_id = ?2,
-               sort_order = 1 +
+               sort_order = coalesce(1 +
                  (select sort_order from task
-                  where column_id = ?2 order by sort_order desc limit 1)
+                  where column_id = ?2 order by sort_order desc limit 1),
+                  0)
              where task.id = ?1",
         )
         .unwrap();

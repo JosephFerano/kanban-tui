@@ -2,3 +2,4 @@
 /.idea/
 /kanban-tui.json
 /kanban.json
+/db.sqlite

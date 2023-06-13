@@ -7,13 +7,14 @@ use std::fs::File;
 use std::io::Read;
 use tui_textarea::TextArea;
 
-use crate::get_all_tasks;
+use crate::db;
 
 #[cfg(test)]
 mod tests;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Column {
+    pub id: i64,
     pub name: String,
     pub selected_task_idx: usize,
     pub tasks: Vec<Task>,
@@ -94,6 +95,8 @@ impl<'a> Column {
     #[must_use]
     pub fn new(name: &str) -> Self {
         Column {
+            // TODO: Get the right ID here
+            id: 1,
             name: name.to_owned(),
             tasks: vec![],
             selected_task_idx: 0,
@@ -113,6 +116,16 @@ impl<'a> Column {
     #[must_use]
     pub fn get_selected_task(&self) -> Option<&Task> {
         self.tasks.get(self.selected_task_idx)
+    }
+
+    #[must_use]
+    pub fn get_previous_task(&self) -> Option<&Task> {
+        self.tasks.get(self.selected_task_idx - 1)
+    }
+
+    #[must_use]
+    pub fn get_next_task(&self) -> Option<&Task> {
+        self.tasks.get(self.selected_task_idx + 1)
     }
 
     pub fn get_selected_task_mut(&mut self) -> Option<&mut Task> {
@@ -135,6 +148,28 @@ impl<'a> Column {
 
     pub fn select_last_task(&mut self) {
         self.selected_task_idx = self.tasks.len() - 1;
+    }
+
+    pub fn move_task_up(&mut self) -> bool {
+        if self.selected_task_idx > 0 {
+            self.tasks
+                .swap(self.selected_task_idx, self.selected_task_idx - 1);
+            self.selected_task_idx -= 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn move_task_down(&mut self) -> bool {
+        if self.selected_task_idx < self.tasks.len() - 1 {
+            self.tasks
+                .swap(self.selected_task_idx, self.selected_task_idx + 1);
+            self.selected_task_idx += 1;
+            true
+        } else {
+            false
+        }
     }
 
     #[must_use]
@@ -182,31 +217,14 @@ impl Project {
     }
 
     pub async fn load2(pool: &Connection) -> Result<Self, KanbanError> {
-        let todos = get_all_tasks(&pool).unwrap();
+        let columns = db::get_all_columns(&pool).unwrap();
 
         Ok(Project {
             name: String::from("Kanban Board"),
             filepath: String::from("path"),
-            columns: todos
-                .iter()
-                .map(|(cname, tasks)| Column {
-                    name: cname.clone(),
-                    // TODO: Figure out how to avoid cloning here
-                    tasks: tasks.to_vec(),
-                    selected_task_idx: 0,
-                })
-                .collect::<Vec<Column>>(),
+            columns,
             selected_column_idx: 0,
         })
-    }
-
-    /// # Panics
-    ///
-    /// Will panic if there's an error serializing the Json or there's an issue
-    /// writing the file
-    pub fn save(&self) {
-        let json = serde_json::to_string_pretty(&self).unwrap();
-        std::fs::write(&self.filepath, json).unwrap();
     }
 
     #[must_use]
@@ -248,7 +266,6 @@ impl Project {
             let col = self.get_selected_column_mut();
             col.tasks.push(t);
             col.select_last_task();
-            self.save();
         }
     }
 
@@ -258,27 +275,5 @@ impl Project {
 
     pub fn move_task_next_column(&mut self) {
         self.move_task_to_column(true);
-    }
-
-    pub fn move_task_up(&mut self) {
-        let column = self.get_selected_column_mut();
-        if column.selected_task_idx > 0 {
-            column
-                .tasks
-                .swap(column.selected_task_idx, column.selected_task_idx - 1);
-            column.selected_task_idx -= 1;
-            self.save();
-        }
-    }
-
-    pub fn move_task_down(&mut self) {
-        let column = self.get_selected_column_mut();
-        if column.selected_task_idx < column.tasks.len() - 1 {
-            column
-                .tasks
-                .swap(column.selected_task_idx, column.selected_task_idx + 1);
-            column.selected_task_idx += 1;
-            self.save();
-        }
     }
 }

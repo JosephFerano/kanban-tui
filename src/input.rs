@@ -1,5 +1,5 @@
 use crate::app::{State, TaskEditFocus, TaskState};
-use crate::{db};
+use crate::db;
 use crossterm::event;
 use crossterm::event::{Event, KeyCode};
 
@@ -40,13 +40,18 @@ pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
                                 if let Some(selected_task) = column.get_selected_task_mut() {
                                     selected_task.title = title;
                                     selected_task.description = description;
+                                    db::update_task_text(&state.db_conn, &selected_task);
                                 }
                             } else {
-                                let task = db::insert_new_task(&state.db_conn, title, description, &column);
+                                let task = db::insert_new_task(
+                                    &state.db_conn,
+                                    title,
+                                    description,
+                                    &column,
+                                );
                                 column.add_task(task);
                             }
                             state.task_edit_state = None;
-                            project.save();
                         }
                         _ => (),
                     },
@@ -72,18 +77,39 @@ pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
                 }
                 KeyCode::Char('g') => column.select_first_task(),
                 KeyCode::Char('G') => column.select_last_task(),
-                KeyCode::Char('H') => project.move_task_previous_column(),
-                KeyCode::Char('L') => project.move_task_next_column(),
-                KeyCode::Char('J') => project.move_task_down(),
-                KeyCode::Char('K') => project.move_task_up(),
+                KeyCode::Char('H') => {
+                    project.move_task_previous_column();
+                    let col = project.get_selected_column();
+                    let t = col.get_selected_task().unwrap();
+                    db::move_task_to_column(&state.db_conn, &t, &col);
+                }
+                KeyCode::Char('L') => {
+                    project.move_task_next_column();
+                    let col = project.get_selected_column();
+                    let t = col.get_selected_task().unwrap();
+                    db::move_task_to_column(&state.db_conn, &t, &col);
+                }
+                KeyCode::Char('J') => {
+                    if column.move_task_down() {
+                        let task1 = column.get_selected_task().unwrap();
+                        let task2 = column.get_previous_task().unwrap();
+                        db::swap_task_order(&mut state.db_conn, &task1, &task2);
+                    }
+                }
+                KeyCode::Char('K') => {
+                    if column.move_task_up() {
+                        let task1 = column.get_selected_task().unwrap();
+                        let task2 = column.get_next_task().unwrap();
+                        db::swap_task_order(&mut state.db_conn, &task1, &task2);
+                    }
+                }
                 KeyCode::Char('n') => state.task_edit_state = Some(TaskState::default()),
                 KeyCode::Char('e') => {
                     state.task_edit_state = column.get_task_state_from_curr_selected_task()
                 }
                 KeyCode::Char('D') => {
-                    column.remove_task();
                     db::delete_task(&state.db_conn, column.get_selected_task().unwrap());
-                    // project.save();
+                    column.remove_task();
                 }
                 _ => {}
             },

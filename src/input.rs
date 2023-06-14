@@ -44,6 +44,11 @@ pub fn handle_task_edit(
                 } else {
                     let task = db::insert_new_task(db_conn, title, description, column);
                     column.add_task(task);
+                    db::set_selected_task_for_column(
+                        db_conn,
+                        column.selected_task_idx,
+                       column.id,
+                    );
                 }
                 *task_opt = None;
             }
@@ -111,6 +116,7 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
                 let col = project.get_selected_column();
                 let t = col.get_selected_task().unwrap();
                 db::move_task_to_column(&state.db_conn, t, col);
+                db::set_selected_column(&state.db_conn, project.selected_column_idx);
             }
         }
         KeyCode::Char('L') => {
@@ -119,6 +125,7 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
                 let col = project.get_selected_column();
                 let t = col.get_selected_task().unwrap();
                 db::move_task_to_column(&state.db_conn, t, col);
+                db::set_selected_column(&state.db_conn, project.selected_column_idx);
             }
         }
         KeyCode::Char('J') => {

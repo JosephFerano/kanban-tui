@@ -44,11 +44,7 @@ pub fn handle_task_edit(
                 } else {
                     let task = db::insert_new_task(db_conn, title, description, column);
                     column.add_task(task);
-                    db::set_selected_task_for_column(
-                        db_conn,
-                        column.selected_task_idx,
-                       column.id,
-                    );
+                    db::set_selected_task_for_column(db_conn, column.selected_task_idx, column.id);
                 }
                 *task_opt = None;
             }
@@ -76,19 +72,15 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
         }
         KeyCode::Char('j') | KeyCode::Down => {
             column.select_next_task();
-            db::set_selected_task_for_column(
-                &state.db_conn,
-                column.selected_task_idx,
-                project.get_selected_column().id,
-            );
+            let task_idx = column.selected_task_idx;
+            let col_id = project.get_selected_column().id;
+            db::set_selected_task_for_column(&state.db_conn, task_idx, col_id);
         }
         KeyCode::Char('k') | KeyCode::Up => {
             column.select_previous_task();
-            db::set_selected_task_for_column(
-                &state.db_conn,
-                column.selected_task_idx,
-                project.get_selected_column().id,
-            );
+            let task_idx = column.selected_task_idx;
+            let col_id = project.get_selected_column().id;
+            db::set_selected_task_for_column(&state.db_conn, task_idx, col_id);
         }
         KeyCode::Char('l') | KeyCode::Right => {
             project.select_next_column();
@@ -96,22 +88,21 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
         }
         KeyCode::Char('g') => {
             column.select_first_task();
-            db::set_selected_task_for_column(
-                &state.db_conn,
-                column.selected_task_idx,
-                project.get_selected_column().id,
-            );
+            let task_idx = column.selected_task_idx;
+            let col_id = project.get_selected_column().id;
+            db::set_selected_task_for_column(&state.db_conn, task_idx, col_id);
         }
         KeyCode::Char('G') => {
             column.select_last_task();
-            db::set_selected_task_for_column(
-                &state.db_conn,
-                column.selected_task_idx,
-                project.get_selected_column().id,
-            );
+            let task_idx = column.selected_task_idx;
+            let col_id = project.get_selected_column().id;
+            db::set_selected_task_for_column(&state.db_conn, task_idx, col_id);
         }
         KeyCode::Char('H') => {
             if !column.tasks.is_empty() {
+                let first_col = project.get_selected_column_mut();
+                let task_idx = first_col.selected_task_idx.saturating_sub(1);
+                db::set_selected_task_for_column(&state.db_conn, task_idx, first_col.id);
                 project.move_task_previous_column();
                 let col = project.get_selected_column();
                 let t = col.get_selected_task().unwrap();
@@ -121,6 +112,9 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
         }
         KeyCode::Char('L') => {
             if !column.tasks.is_empty() {
+                let first_col = project.get_selected_column_mut();
+                let task_idx = first_col.selected_task_idx.saturating_sub(1);
+                db::set_selected_task_for_column(&state.db_conn, task_idx, first_col.id);
                 project.move_task_next_column();
                 let col = project.get_selected_column();
                 let t = col.get_selected_task().unwrap();
@@ -133,11 +127,9 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
                 let task1 = column.get_selected_task().unwrap();
                 let task2 = column.get_previous_task().unwrap();
                 db::swap_task_order(&mut state.db_conn, task1, task2);
-                db::set_selected_task_for_column(
-                    &state.db_conn,
-                    column.selected_task_idx,
-                    project.get_selected_column().id,
-                );
+                let task_idx = column.selected_task_idx;
+                let col_id = project.get_selected_column().id;
+                db::set_selected_task_for_column(&state.db_conn, task_idx, col_id);
             }
         }
         KeyCode::Char('K') => {
@@ -145,11 +137,9 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
                 let task1 = column.get_selected_task().unwrap();
                 let task2 = column.get_next_task().unwrap();
                 db::swap_task_order(&mut state.db_conn, task1, task2);
-                db::set_selected_task_for_column(
-                    &state.db_conn,
-                    column.selected_task_idx,
-                    project.get_selected_column().id,
-                );
+                let task_idx = column.selected_task_idx;
+                let col_id = project.get_selected_column().id;
+                db::set_selected_task_for_column(&state.db_conn, task_idx, col_id);
             }
         }
         KeyCode::Char('n') => state.task_edit_state = Some(TaskState::default()),
@@ -158,11 +148,9 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
             if !column.tasks.is_empty() {
                 db::delete_task(&state.db_conn, column.get_selected_task().unwrap());
                 column.remove_task();
-                db::set_selected_task_for_column(
-                    &state.db_conn,
-                    column.selected_task_idx,
-                    project.get_selected_column().id,
-                );
+                let task_idx = column.selected_task_idx;
+                let col_id = project.get_selected_column().id;
+                db::set_selected_task_for_column(&state.db_conn, task_idx, col_id);
             }
         }
         _ => {}

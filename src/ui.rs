@@ -1,7 +1,7 @@
 use crate::app::{State, TaskEditFocus};
 use tui::backend::Backend;
 use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use tui::style::{Color, Modifier, Style};
+use tui::style::{Modifier, Style};
 use tui::text::{Span, Spans};
 use tui::widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap};
 use tui::Frame;
@@ -29,10 +29,9 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
                 let task_idx = state.project.get_selected_column().selected_task_idx;
                 let item_txt;
                 if i == col_idx && j == task_idx {
-                    style = style.fg(Color::White).add_modifier(Modifier::BOLD);
+                    style = style.add_modifier(Modifier::BOLD | Modifier::UNDERLINED);
                     item_txt = format!("{} 👈", task.title);
                 } else {
-                    style = style.fg(Color::White);
                     item_txt = task.title.clone();
                 }
                 let mut s = Span::raw(item_txt);
@@ -42,17 +41,20 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
             .collect();
         let mut style = Style::default();
         if i == state.project.selected_column_idx {
-            style = style.fg(Color::Green);
+            style = style.add_modifier(Modifier::REVERSED);
         };
         let mut s = Span::raw(column.name.as_str());
-        s.style = Style::default()
-            .add_modifier(Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED)
-            .fg(Color::White);
-        let block = Block::default().style(style).title(s).borders(Borders::ALL);
-        let list = List::new(items).block(block);
+        s.style =
+            Style::default().add_modifier(Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED);
+        // .fg(Color::White);
+        let block = Block::default().title(s).borders(Borders::ALL);
+        let inner_area = block.inner(columns[i]);
+        let inner_block = Block::default().style(style);
+        let list = List::new(items).block(inner_block);
         let mut list_state = ListState::default();
         list_state.select(Some(column.selected_task_idx + 1));
-        f.render_stateful_widget(list, columns[i], &mut list_state);
+        f.render_widget(block, columns[i]);
+        f.render_stateful_widget(list, inner_area, &mut list_state);
     }
 }
 
@@ -136,14 +138,14 @@ pub fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, 
         let cancel_txt;
         match task.focus {
             TaskEditFocus::ConfirmBtn => {
-                create_style = Style::default().fg(Color::Yellow);
+                create_style = Style::default().add_modifier(Modifier::BOLD);
                 cancel_style = Style::default();
                 create_txt = "[Confirm]";
                 cancel_txt = " Cancel ";
             }
             TaskEditFocus::CancelBtn => {
                 create_style = Style::default();
-                cancel_style = Style::default().fg(Color::Yellow);
+                cancel_style = Style::default().add_modifier(Modifier::BOLD);
                 create_txt = " Confirm ";
                 cancel_txt = "[Cancel]";
             }
@@ -167,7 +169,8 @@ pub fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, 
 
         task.title.set_block(b1);
         if let TaskEditFocus::Title = task.focus {
-            task.title.set_style(Style::default().fg(Color::Yellow));
+            task.title
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
             task.title
                 .set_cursor_style(Style::default().add_modifier(Modifier::REVERSED));
         } else {
@@ -179,7 +182,7 @@ pub fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, 
         task.description.set_block(b2);
         if let TaskEditFocus::Description = task.focus {
             task.description
-                .set_style(Style::default().fg(Color::Yellow));
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
             task.description
                 .set_cursor_style(Style::default().add_modifier(Modifier::REVERSED));
         } else {

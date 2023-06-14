@@ -19,9 +19,7 @@ pub struct CliArgs {
     pub filepath: Option<PathBuf>,
 }
 
-// TODO: We either make everything async or we remove the dependency
-#[async_std::main]
-async fn main() -> anyhow::Result<(), Box<dyn Error>> {
+fn main() -> anyhow::Result<(), Box<dyn Error>> {
     let dbpath = CliArgs::parse()
         .filepath
         .unwrap_or(PathBuf::from("./kanban.db"));

@@ -7,7 +7,8 @@ pub fn handle_task_edit(
     state: &mut State<'_>,
     key: event::KeyEvent,
 ) {
-    if let Some(task) = &mut state.task_edit_state {
+    if let Some(mut task) = state.task_edit_state.take() {
+        let mut clear_task = false;
         match task.focus {
             // TODO: Handle wrapping around the enum rather than doing it manually
             TaskEditFocus::Title => match key.code {
@@ -31,19 +32,22 @@ pub fn handle_task_edit(
                 KeyCode::Enter => {
                     let title = task.title.clone().into_lines().join("\n");
                     let description = task.description.clone().into_lines().join("\n");
-                    let column = state.get_selected_column_mut();
                     if task.is_edit {
+                        let column = state.get_selected_column_mut();
                         if let Some(selected_task) = column.get_selected_task_mut() {
                             selected_task.title = title;
                             selected_task.description = description;
-                            state.db_conn.update_task_text(selected_task);
+                            let cloned = selected_task.clone();
+                            state.db_conn.update_task_text(&cloned);
                         }
                     } else {
-                        let task = state.db_conn.insert_new_task(title, description, column);
-                        column.add_task(task);
-                        state.db_conn.set_selected_task_for_column(column.selected_task_idx, column.id);
+                        let col_id = state.get_selected_column().id;
+                        let selected_task_idx = state.get_selected_column().selected_task_idx;
+                        let task = state.db_conn.insert_new_task(title, description, col_id);
+                        state.get_selected_column_mut().add_task(task);
+                        state.db_conn.set_selected_task_for_column(selected_task_idx, col_id);
                     }
-                    state.task_edit_state = None;
+                    clear_task = true;
                 }
                 _ => (),
             },
@@ -51,10 +55,13 @@ pub fn handle_task_edit(
                 KeyCode::Tab => task.focus = TaskEditFocus::Title,
                 KeyCode::BackTab => task.focus = TaskEditFocus::ConfirmBtn,
                 KeyCode::Enter => {
-                    state.task_edit_state = None;
+                    clear_task = true;
                 }
                 _ => (),
             },
+        }
+        if !clear_task {
+            state.task_edit_state = Some(task);
         }
     }
 }
@@ -111,6 +118,7 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
         KeyCode::Char('e') => state.task_edit_state = column.get_task_state_from_current(),
         KeyCode::Char('D') => {
             if !column.tasks.is_empty() {
+                state.delete_task();
             }
         }
         _ => {}

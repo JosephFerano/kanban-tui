@@ -60,6 +60,11 @@ pub struct State<'a> {
 }
 
 impl State<'_> {
+    /// Creates a new [`State`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if we can't get all the columns from the database
     #[must_use]
     pub fn new(conn: Connection) -> Self {
         let db_conn = db::DBConn::new(conn);
@@ -116,6 +121,11 @@ impl State<'_> {
         }
     }
 
+    /// Returns the move task up of this [`State`].
+    ///
+    /// # Panics
+    ///
+    /// We have conditions to ensure this doesn't panic but we still unwrap()
     pub fn move_task_up(&mut self) -> bool {
         let column = self.get_selected_column_mut();
         if column.selected_task_idx > 0 {
@@ -133,6 +143,11 @@ impl State<'_> {
         }
     }
 
+    /// Returns the move task down of this [`State`].
+    ///
+    /// # Panics
+    ///
+    /// We have conditions to ensure this doesn't panic but we still unwrap()
     pub fn move_task_down(&mut self) -> bool {
         let column = self.get_selected_column_mut();
         if column.selected_task_idx < column.tasks.len().saturating_sub(1) {
@@ -150,6 +165,11 @@ impl State<'_> {
         }
     }
 
+    /// Returns the move task previous column of this [`State`].
+    ///
+    /// # Panics
+    ///
+    /// We have conditions to ensure this doesn't panic but we still unwrap()
     pub fn move_task_previous_column(&mut self) {
         let first_col = self.get_selected_column_mut();
         let task_idx = first_col.selected_task_idx.saturating_sub(1);
@@ -163,6 +183,11 @@ impl State<'_> {
         self.db_conn.set_selected_column(self.selected_column_idx);
     }
 
+    /// Returns the move task previous column of this [`State`].
+    ///
+    /// # Panics
+    ///
+    /// We have conditions to ensure this doesn't panic but we still unwrap()
     pub fn move_task_next_column(&mut self) {
         let first_col = self.get_selected_column_mut();
         let task_idx = first_col.selected_task_idx.saturating_sub(1);
@@ -176,6 +201,11 @@ impl State<'_> {
         self.db_conn.set_selected_column(self.selected_column_idx);
     }
 
+    /// Returns the delete task of this [`State`].
+    ///
+    /// # Panics
+    ///
+    /// We have conditions to ensure this doesn't panic but we still unwrap()
     pub fn delete_task(&mut self) {
         let column = self.get_selected_column_mut();
         let task_id = column.get_selected_task().unwrap().id;

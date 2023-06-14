@@ -65,12 +65,12 @@ impl DBConn {
     /// # Panics
     ///
     /// Panics if something goes wrong with the SQL
-    pub fn insert_new_task(&self, title: String, description: String, column: &Column) -> Task {
+    pub fn insert_new_task(&self, title: String, description: String, column_id: i64) -> Task {
         let mut stmt = self
             .0
             .prepare("insert into task(title, description, column_id) values (?1, ?2, ?3)")
             .unwrap();
-        stmt.execute(params![title, description, column.id])
+        stmt.execute(params![title, description, column_id])
             .unwrap();
         let id = self.0.last_insert_rowid();
         Task {

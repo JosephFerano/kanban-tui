@@ -4,7 +4,7 @@ use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use kanban_tui::{Project, State};
+use kanban_tui::State;
 use rusqlite::Connection;
 use std::{error::Error, io, path::PathBuf};
 use tui::backend::CrosstermBackend;
@@ -40,8 +40,7 @@ fn main() -> anyhow::Result<(), Box<dyn Error>> {
         tx.commit()?;
     }
 
-    let project = Project::load(&conn)?;
-    let mut state = State::new(conn, project);
+    let mut state = State::new(conn);
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();

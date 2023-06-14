@@ -11,22 +11,22 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
         .direction(Direction::Horizontal)
         .constraints(
             vec![
-                Constraint::Percentage(100 / u16::try_from(state.project.columns.len()).unwrap());
-                state.project.columns.len()
+                Constraint::Percentage(100 / u16::try_from(state.columns.len()).unwrap());
+                state.columns.len()
             ]
             .as_ref(),
         )
         .split(area);
 
-    for (i, column) in state.project.columns.iter().enumerate() {
+    for (i, column) in state.columns.iter().enumerate() {
         let items: Vec<ListItem<'_>> = column
             .tasks
             .iter()
             .enumerate()
             .map(|(j, task)| {
                 let mut style = Style::default();
-                let col_idx = state.project.selected_column_idx;
-                let task_idx = state.project.get_selected_column().selected_task_idx;
+                let col_idx = state.selected_column_idx;
+                let task_idx = state.get_selected_column().selected_task_idx;
                 let item_txt;
                 if i == col_idx && j == task_idx {
                     style = style.add_modifier(Modifier::BOLD | Modifier::UNDERLINED);
@@ -40,7 +40,7 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
             })
             .collect();
         let mut style = Style::default();
-        if i == state.project.selected_column_idx {
+        if i == state.selected_column_idx {
             style = style.add_modifier(Modifier::REVERSED);
         };
         let mut s = Span::raw(column.name.as_str());
@@ -60,7 +60,7 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
 
 fn draw_task_info<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
     let block = Block::default().title("TASK INFO").borders(Borders::ALL);
-    if let Some(task) = state.project.get_selected_column().get_selected_task() {
+    if let Some(task) = state.get_selected_column().get_selected_task() {
         let p = Paragraph::new(task.description.as_str())
             .block(block)
             .wrap(Wrap { trim: true });

@@ -2,7 +2,7 @@
 // use int_enum::IntEnum;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use std::{cmp::min, error::Error};
+use std::cmp::min;
 use tui_textarea::TextArea;
 
 use crate::db;
@@ -23,22 +23,6 @@ pub struct Task {
     pub id: i64,
     pub title: String,
     pub description: String,
-}
-
-/// Type used mainly for serialization at this time
-#[derive(Deserialize, Serialize, Debug)]
-pub struct Project {
-    pub name: String,
-    pub selected_column_idx: usize,
-    pub columns: Vec<Column>,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum KanbanError {
-    #[error("There is something wrong with the json schema, it doesn't match Project struct")]
-    BadJson,
-    #[error("IO - {0}")]
-    Io(#[from] std::io::Error),
 }
 
 #[derive(Debug)]
@@ -68,23 +52,76 @@ impl Default for TaskState<'_> {
 }
 
 pub struct State<'a> {
-    pub project: Project,
-    pub db_conn: Connection,
-    pub quit: bool,
+    pub selected_column_idx: usize,
     pub columns: Vec<Column>,
+    pub db_conn: db::DBConn,
+    pub quit: bool,
     pub task_edit_state: Option<TaskState<'a>>,
 }
 
 impl State<'_> {
     #[must_use]
-    pub fn new(db_pool: Connection, project: Project) -> Self {
+    pub fn new(conn: Connection) -> Self {
+        let db_conn = db::DBConn::new(conn);
+        let columns = db_conn.get_all_columns().unwrap();
+        let selected_column = db_conn.get_selected_column();
         State {
+            columns,
+            selected_column_idx: selected_column,
             quit: false,
             task_edit_state: None,
-            db_conn: db_pool,
-            project,
-            columns: vec![],
+            db_conn,
         }
+    }
+
+    #[must_use]
+    pub fn get_selected_column(&self) -> &Column {
+        &self.columns[self.selected_column_idx]
+    }
+
+    pub fn get_selected_column_mut(&mut self) -> &mut Column {
+        &mut self.columns[self.selected_column_idx]
+    }
+
+    pub fn select_previous_column(&mut self) -> &Column {
+        self.selected_column_idx = self.selected_column_idx.saturating_sub(1);
+        &self.columns[self.selected_column_idx]
+    }
+
+    pub fn select_next_column(&mut self) -> &Column {
+        self.selected_column_idx = min(self.selected_column_idx + 1, self.columns.len() - 1);
+        &self.columns[self.selected_column_idx]
+    }
+
+    fn move_task_to_column(&mut self, move_next: bool) {
+        let col_idx = self.selected_column_idx;
+        let cols_len = self.columns.len();
+        let column = self.get_selected_column_mut();
+        let cond = if move_next {
+            col_idx < cols_len - 1
+        } else {
+            col_idx > 0
+        };
+        if cond && !column.tasks.is_empty() {
+            let t = column.tasks.remove(column.selected_task_idx);
+            column.select_previous_task();
+            if move_next {
+                self.select_next_column();
+            } else {
+                self.select_previous_column();
+            }
+            let col = self.get_selected_column_mut();
+            col.tasks.push(t);
+            col.select_last_task();
+        }
+    }
+
+    pub fn move_task_previous_column(&mut self) {
+        self.move_task_to_column(false);
+    }
+
+    pub fn move_task_next_column(&mut self) {
+        self.move_task_to_column(true);
     }
 }
 
@@ -166,73 +203,5 @@ impl<'a> Column {
             focus: TaskEditFocus::Title,
             is_edit: true,
         })
-    }
-}
-
-impl Project {
-    /// .
-    ///
-    /// # Errors
-    ///
-    /// This function will return an error if it has issues reading from the database
-    pub fn load(conn: &Connection) -> Result<Self, Box<dyn Error>> {
-        let columns = db::get_all_columns(conn)?;
-        let selected_column = db::get_selected_column(conn);
-
-        Ok(Project {
-            name: String::from("Kanban Board"),
-            columns,
-            selected_column_idx: selected_column,
-        })
-    }
-
-    #[must_use]
-    pub fn get_selected_column(&self) -> &Column {
-        &self.columns[self.selected_column_idx]
-    }
-
-    pub fn get_selected_column_mut(&mut self) -> &mut Column {
-        &mut self.columns[self.selected_column_idx]
-    }
-
-    pub fn select_previous_column(&mut self) -> &Column {
-        self.selected_column_idx = self.selected_column_idx.saturating_sub(1);
-        &self.columns[self.selected_column_idx]
-    }
-
-    pub fn select_next_column(&mut self) -> &Column {
-        self.selected_column_idx = min(self.selected_column_idx + 1, self.columns.len() - 1);
-        &self.columns[self.selected_column_idx]
-    }
-
-    fn move_task_to_column(&mut self, move_next: bool) {
-        let col_idx = self.selected_column_idx;
-        let cols_len = self.columns.len();
-        let column = self.get_selected_column_mut();
-        let cond = if move_next {
-            col_idx < cols_len - 1
-        } else {
-            col_idx > 0
-        };
-        if cond && !column.tasks.is_empty() {
-            let t = column.tasks.remove(column.selected_task_idx);
-            column.select_previous_task();
-            if move_next {
-                self.select_next_column();
-            } else {
-                self.select_previous_column();
-            }
-            let col = self.get_selected_column_mut();
-            col.tasks.push(t);
-            col.select_last_task();
-        }
-    }
-
-    pub fn move_task_previous_column(&mut self) {
-        self.move_task_to_column(false);
-    }
-
-    pub fn move_task_next_column(&mut self) {
-        self.move_task_to_column(true);
     }
 }

@@ -12,7 +12,7 @@ mod tests;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Column {
-    pub id: i32,
+    pub id: i64,
     pub name: String,
     pub selected_task_idx: usize,
     pub tasks: Vec<Task>,
@@ -116,12 +116,74 @@ impl State<'_> {
         }
     }
 
+    pub fn move_task_up(&mut self) -> bool {
+        let column = self.get_selected_column_mut();
+        if column.selected_task_idx > 0 {
+            column.tasks.swap(column.selected_task_idx, column.selected_task_idx - 1);
+            column.selected_task_idx -= 1;
+            let task1_id = column.get_selected_task().unwrap().id;
+            let task2_id = column.get_next_task().unwrap().id;
+            let col_id = column.id;
+            let task_idx = column.selected_task_idx;
+            self.db_conn.swap_task_order(task1_id, task2_id);
+            self.db_conn.set_selected_task_for_column(task_idx, col_id);
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn move_task_down(&mut self) -> bool {
+        let column = self.get_selected_column_mut();
+        if column.selected_task_idx < column.tasks.len().saturating_sub(1) {
+            let task_idx = column.selected_task_idx;
+            column.tasks.swap(task_idx, task_idx + 1);
+            column.selected_task_idx += 1;
+            let task1_id = column.get_selected_task().unwrap().id;
+            let task2_id = column.get_previous_task().unwrap().id;
+            let col_id = column.id;
+            self.db_conn.swap_task_order(task1_id, task2_id);
+            self.db_conn.set_selected_task_for_column(task_idx, col_id);
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn move_task_previous_column(&mut self) {
+        let first_col = self.get_selected_column_mut();
+        let task_idx = first_col.selected_task_idx.saturating_sub(1);
+        let col_id = first_col.id;
+        self.db_conn.set_selected_task_for_column(task_idx, col_id);
         self.move_task_to_column(false);
+        self.db_conn.move_task_to_column(
+            self.get_selected_column().get_selected_task().unwrap(),
+            self.get_selected_column(),
+        );
+        self.db_conn.set_selected_column(self.selected_column_idx);
     }
 
     pub fn move_task_next_column(&mut self) {
+        let first_col = self.get_selected_column_mut();
+        let task_idx = first_col.selected_task_idx.saturating_sub(1);
+        let col_id = first_col.id;
+        self.db_conn.set_selected_task_for_column(task_idx, col_id);
         self.move_task_to_column(true);
+        self.db_conn.move_task_to_column(
+            self.get_selected_column().get_selected_task().unwrap(),
+            self.get_selected_column(),
+        );
+        self.db_conn.set_selected_column(self.selected_column_idx);
+    }
+
+    pub fn delete_task(&mut self) {
+        let column = self.get_selected_column_mut();
+        let task_id = column.get_selected_task().unwrap().id;
+        column.remove_task();
+        let task_idx = column.selected_task_idx;
+        let col_id = self.get_selected_column().id;
+        self.db_conn.delete_task(task_id);
+        self.db_conn.set_selected_task_for_column(task_idx, col_id);
     }
 }
 
@@ -171,28 +233,6 @@ impl<'a> Column {
 
     pub fn select_last_task(&mut self) {
         self.selected_task_idx = self.tasks.len().saturating_sub(1);
-    }
-
-    pub fn move_task_up(&mut self) -> bool {
-        if self.selected_task_idx > 0 {
-            self.tasks
-                .swap(self.selected_task_idx, self.selected_task_idx - 1);
-            self.selected_task_idx -= 1;
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn move_task_down(&mut self) -> bool {
-        if self.selected_task_idx < self.tasks.len().saturating_sub(1) {
-            self.tasks
-                .swap(self.selected_task_idx, self.selected_task_idx + 1);
-            self.selected_task_idx += 1;
-            true
-        } else {
-            false
-        }
     }
 
     #[must_use]

@@ -42,7 +42,9 @@ impl DBConn {
     ///
     /// This function will return an error if there are issues with the SQL
     pub fn get_all_columns(&self) -> Result<Vec<Column>> {
-        let mut stmt = self.0.prepare("select id, name, selected_task from kb_column")?;
+        let mut stmt = self
+            .0
+            .prepare("select id, name, selected_task from kb_column")?;
         let columns = stmt
             .query_map((), |row| {
                 let name = row.get(1)?;
@@ -83,9 +85,9 @@ impl DBConn {
     /// # Panics
     ///
     /// Panics if something goes wrong with the SQL
-    pub fn delete_task(&self, task: &Task) {
+    pub fn delete_task(&self, task_id: i64) {
         let mut stmt = self.0.prepare("delete from task where id = ?1").unwrap();
-        stmt.execute([task.id]).unwrap();
+        stmt.execute([task_id]).unwrap();
     }
 
     /// .
@@ -94,7 +96,8 @@ impl DBConn {
     ///
     /// Panics if something goes wrong with the SQL
     pub fn update_task_text(&self, task: &Task) {
-        let mut stmt = self.0
+        let mut stmt = self
+            .0
             .prepare("update task set title = ?2, description = ?3 where id = ?1")
             .unwrap();
         stmt.execute((&task.id, &task.title, &task.description))
@@ -107,7 +110,8 @@ impl DBConn {
     ///
     /// Panics if something goes wrong with the SQL
     pub fn move_task_to_column(&self, task: &Task, target_column: &Column) {
-        let mut stmt = self.0
+        let mut stmt = self
+            .0
             .prepare(
                 "update task
              set
@@ -128,25 +132,25 @@ impl DBConn {
     /// # Panics
     ///
     /// Panics if something goes wrong with the SQL
-    pub fn swap_task_order(&mut self, task1: &Task, task2: &Task) {
+    pub fn swap_task_order(&mut self, task1_id: i64, task2_id: i64) {
         let tx = self.0.transaction().unwrap();
 
         tx.execute(
             "create temp table temp_order as select sort_order from task where id = ?1",
-            [&task1.id],
+            [&task1_id],
         )
         .unwrap();
 
         tx.execute(
             "update task set sort_order = (select sort_order from task where id = ?2)
          where id = ?1",
-            (task1.id, task2.id),
+            (task1_id, task2_id),
         )
         .unwrap();
 
         tx.execute(
             "update task set sort_order = (select sort_order from temp_order) where id = ?1",
-            [&task2.id],
+            [&task2_id],
         )
         .unwrap();
         tx.execute("drop table temp_order", ()).unwrap();
@@ -158,7 +162,8 @@ impl DBConn {
     ///
     /// Panics if something goes wrong with the SQL
     pub fn set_selected_column(&self, column_id: usize) {
-        let mut stmt = self.0
+        let mut stmt = self
+            .0
             .prepare("insert or replace into app_state(key, value) values (?1, ?2)")
             .unwrap();
         stmt.execute((&"selected_column", column_id.to_string()))
@@ -169,7 +174,8 @@ impl DBConn {
     ///
     /// Panics if something goes wrong with the SQL
     pub fn get_selected_column(&self) -> usize {
-        let mut stmt = self.0
+        let mut stmt = self
+            .0
             .prepare("select value from app_state where key = ?1")
             .unwrap();
         stmt.query_row(["selected_column"], |row| {
@@ -182,8 +188,9 @@ impl DBConn {
     /// # Panics
     ///
     /// Panics if something goes wrong with the SQL
-    pub fn set_selected_task_for_column(&self, task_idx: usize, column_id: i32) {
-        let mut stmt = self.0
+    pub fn set_selected_task_for_column(&self, task_idx: usize, column_id: i64) {
+        let mut stmt = self
+            .0
             .prepare("update kb_column set selected_task = ?2 where id = ?1")
             .unwrap();
         stmt.execute((column_id, task_idx)).unwrap();
@@ -193,7 +200,8 @@ impl DBConn {
     ///
     /// Panics if something goes wrong with the SQL
     pub fn get_selected_task_for_column(&self, column_id: i32) -> usize {
-        let mut stmt = self.0
+        let mut stmt = self
+            .0
             .prepare("select selected_task from kb_column where key = ?1")
             .unwrap();
         stmt.query_row([column_id], |row| row.get(0)).unwrap()

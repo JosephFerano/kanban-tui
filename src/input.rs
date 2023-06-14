@@ -1,63 +1,62 @@
 use crate::app::{State, TaskEditFocus, TaskState};
-use crate::{db, Column};
 use crossterm::event;
 use crossterm::event::{Event, KeyCode};
 
 // pub fn handle_task_edit(state: &mut State<'_>, key: event::KeyEvent, mut task: TaskState<'_>) {
 pub fn handle_task_edit(
-    db_conn: &db::DBConn,
-    column: &mut Column,
+    state: &mut State<'_>,
     key: event::KeyEvent,
-    task_opt: &mut Option<TaskState<'_>>,
 ) {
-    let mut task = task_opt.as_mut().unwrap();
-    match task.focus {
-        // TODO: Handle wrapping around the enum rather than doing it manually
-        TaskEditFocus::Title => match key.code {
-            KeyCode::Tab => task.focus = TaskEditFocus::Description,
-            KeyCode::BackTab => task.focus = TaskEditFocus::CancelBtn,
-            KeyCode::Enter => (),
-            _ => {
-                task.title.input(key);
-            }
-        },
-        TaskEditFocus::Description => match key.code {
-            KeyCode::Tab => task.focus = TaskEditFocus::ConfirmBtn,
-            KeyCode::BackTab => task.focus = TaskEditFocus::Title,
-            _ => {
-                task.description.input(key);
-            }
-        },
-        TaskEditFocus::ConfirmBtn => match key.code {
-            KeyCode::Tab => task.focus = TaskEditFocus::CancelBtn,
-            KeyCode::BackTab => task.focus = TaskEditFocus::Description,
-            KeyCode::Enter => {
-                let title = task.title.clone().into_lines().join("\n");
-                let description = task.description.clone().into_lines().join("\n");
-                if task.is_edit {
-                    if let Some(selected_task) = column.get_selected_task_mut() {
-                        selected_task.title = title;
-                        selected_task.description = description;
-                        db_conn.update_task_text(selected_task);
-                    }
-                } else {
-                    let task = db_conn.insert_new_task(title, description, column);
-                    column.add_task(task);
-                    db_conn.set_selected_task_for_column(column.selected_task_idx, column.id);
+    if let Some(task) = &mut state.task_edit_state {
+        match task.focus {
+            // TODO: Handle wrapping around the enum rather than doing it manually
+            TaskEditFocus::Title => match key.code {
+                KeyCode::Tab => task.focus = TaskEditFocus::Description,
+                KeyCode::BackTab => task.focus = TaskEditFocus::CancelBtn,
+                KeyCode::Enter => (),
+                _ => {
+                    task.title.input(key);
                 }
-                *task_opt = None;
-            }
-            _ => (),
-        },
-        TaskEditFocus::CancelBtn => match key.code {
-            KeyCode::Tab => task.focus = TaskEditFocus::Title,
-            KeyCode::BackTab => task.focus = TaskEditFocus::ConfirmBtn,
-            KeyCode::Enter => {
-                *task_opt = None;
-            }
-            _ => (),
-        },
-    };
+            },
+            TaskEditFocus::Description => match key.code {
+                KeyCode::Tab => task.focus = TaskEditFocus::ConfirmBtn,
+                KeyCode::BackTab => task.focus = TaskEditFocus::Title,
+                _ => {
+                    task.description.input(key);
+                }
+            },
+            TaskEditFocus::ConfirmBtn => match key.code {
+                KeyCode::Tab => task.focus = TaskEditFocus::CancelBtn,
+                KeyCode::BackTab => task.focus = TaskEditFocus::Description,
+                KeyCode::Enter => {
+                    let title = task.title.clone().into_lines().join("\n");
+                    let description = task.description.clone().into_lines().join("\n");
+                    let column = state.get_selected_column_mut();
+                    if task.is_edit {
+                        if let Some(selected_task) = column.get_selected_task_mut() {
+                            selected_task.title = title;
+                            selected_task.description = description;
+                            state.db_conn.update_task_text(selected_task);
+                        }
+                    } else {
+                        let task = state.db_conn.insert_new_task(title, description, column);
+                        column.add_task(task);
+                        state.db_conn.set_selected_task_for_column(column.selected_task_idx, column.id);
+                    }
+                    state.task_edit_state = None;
+                }
+                _ => (),
+            },
+            TaskEditFocus::CancelBtn => match key.code {
+                KeyCode::Tab => task.focus = TaskEditFocus::Title,
+                KeyCode::BackTab => task.focus = TaskEditFocus::ConfirmBtn,
+                KeyCode::Enter => {
+                    state.task_edit_state = None;
+                }
+                _ => (),
+            },
+        }
+    }
 }
 
 pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
@@ -98,57 +97,20 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
         }
         KeyCode::Char('H') => {
             if !column.tasks.is_empty() {
-                let first_col = state.get_selected_column_mut();
-                let task_idx = first_col.selected_task_idx.saturating_sub(1);
-                state.db_conn.set_selected_task_for_column(task_idx, first_col.id);
                 state.move_task_previous_column();
-                let col = state.get_selected_column();
-                let t = col.get_selected_task().unwrap();
-                state.db_conn.move_task_to_column(t, col);
-                state.db_conn.set_selected_column(state.selected_column_idx);
             }
         }
         KeyCode::Char('L') => {
             if !column.tasks.is_empty() {
-                let first_col = state.get_selected_column_mut();
-                let task_idx = first_col.selected_task_idx.saturating_sub(1);
-                state.db_conn.set_selected_task_for_column(task_idx, first_col.id);
                 state.move_task_next_column();
-                let col = state.get_selected_column();
-                let t = col.get_selected_task().unwrap();
-                state.db_conn.move_task_to_column(t, col);
-                state.db_conn.set_selected_column(state.selected_column_idx);
             }
         }
-        KeyCode::Char('J') => {
-            if column.move_task_down() {
-                let task1 = column.get_selected_task().unwrap();
-                let task2 = column.get_previous_task().unwrap();
-                state.db_conn.swap_task_order(task1, task2);
-                let task_idx = column.selected_task_idx;
-                let col_id = state.get_selected_column().id;
-                state.db_conn.set_selected_task_for_column(task_idx, col_id);
-            }
-        }
-        KeyCode::Char('K') => {
-            if column.move_task_up() {
-                let task1 = column.get_selected_task().unwrap();
-                let task2 = column.get_next_task().unwrap();
-                state.db_conn.swap_task_order(task1, task2);
-                let task_idx = column.selected_task_idx;
-                let col_id = state.get_selected_column().id;
-                state.db_conn.set_selected_task_for_column(task_idx, col_id);
-            }
-        }
+        KeyCode::Char('J') => { state.move_task_down(); },
+        KeyCode::Char('K') => { state.move_task_up(); },
         KeyCode::Char('n') => state.task_edit_state = Some(TaskState::default()),
         KeyCode::Char('e') => state.task_edit_state = column.get_task_state_from_current(),
         KeyCode::Char('D') => {
             if !column.tasks.is_empty() {
-                state.db_conn.delete_task(column.get_selected_task().unwrap());
-                column.remove_task();
-                let task_idx = column.selected_task_idx;
-                let col_id = state.get_selected_column().id;
-                state.db_conn.set_selected_task_for_column(task_idx, col_id);
             }
         }
         _ => {}
@@ -165,8 +127,7 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
 pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
     if let Event::Key(key) = event::read()? {
         if state.task_edit_state.is_some() {
-            let column = state.get_selected_column_mut();
-            handle_task_edit(&state.db_conn, column, key, &mut state.task_edit_state);
+            handle_task_edit(state, key);
         } else {
             handle_main(state, key);
         }

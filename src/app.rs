@@ -1,3 +1,4 @@
+use anyhow::Error;
 // use indexmap::IndexMap;
 // use int_enum::IntEnum;
 use rusqlite::Connection;
@@ -66,17 +67,17 @@ impl<'a> State<'a> {
     ///
     /// Panics if we can't get all the columns from the database
     #[must_use]
-    pub fn new(conn: Connection) -> Self {
+    pub fn new(conn: Connection) -> Result<Self, Error> {
         let db_conn = db::DBConn::new(conn);
-        let columns = db_conn.get_all_columns().unwrap();
+        let columns = db_conn.get_all_columns()?;
         let selected_column = db_conn.get_selected_column();
-        State {
+        Ok(State {
             columns,
             selected_column_idx: selected_column,
             quit: false,
             task_edit_state: None,
             db_conn,
-        }
+        })
     }
 
     #[must_use]
@@ -181,11 +182,8 @@ impl<'a> State<'a> {
     pub fn move_task_down(&mut self) {
         self.move_task(true);
     }
+
     /// Returns the move task down of this [`State`].
-    ///
-    /// # Panics
-    ///
-    /// We have conditions to ensure this doesn't panic but we still unwrap()
     pub fn move_task(&mut self, is_down: bool) {
         let other_task = if is_down {
             self.get_next_task()
@@ -232,7 +230,7 @@ impl<'a> State<'a> {
 
         // Only move it if it was the last task
         if first_col.selected_task_idx == first_col.tasks.len() {
-            self.select_previous_task();    
+            self.select_previous_task();
         }
 
         if move_right {
@@ -245,7 +243,8 @@ impl<'a> State<'a> {
         col.tasks.push(t);
         self.select_last_task();
         if let Some(task) = self.get_selected_task() {
-            self.db_conn.move_task_to_column(task, self.get_selected_column());
+            let col = self.get_selected_column();
+            self.db_conn.move_task_to_column(task, col);
             self.db_conn.set_selected_column(self.selected_column_idx);
         }
     }
@@ -256,9 +255,11 @@ impl<'a> State<'a> {
 
         self.select_last_task();
         let selected_task_idx = self.get_selected_column().selected_task_idx;
-        self.db_conn.set_selected_task_for_column(selected_task_idx, col_id);
+        self.db_conn
+            .set_selected_task_for_column(selected_task_idx, col_id);
 
         self.get_selected_column_mut().tasks.push(task);
+        self.select_last_task()
     }
 
     pub fn edit_task(&mut self, title: String, description: String) {
@@ -270,23 +271,23 @@ impl<'a> State<'a> {
         }
     }
 
-    /// Returns the delete task of this [`State`].
-    ///
-    /// # Panics
-    ///
-    /// We have conditions to ensure this doesn't panic but we still unwrap()
+    /// Delete the currently selected task from the selected column
     pub fn delete_task(&mut self) {
-        let column = self.get_selected_column();
-        if column.tasks.is_empty() {
-            return;
+        if let Some(task) = self.get_selected_task() {
+            let task_id = task.id;
+            let column = self.get_selected_column_mut();
+            let mut task_idx = column.selected_task_idx;
+            let col_id = column.id;
+
+            column.tasks.remove(task_idx);
+
+            if column.selected_task_idx >= column.tasks.len() {
+                self.select_previous_task();
+                task_idx = task_idx.saturating_sub(1);
+            }
+
+            self.db_conn.delete_task(task_id);
+            self.db_conn.set_selected_task_for_column(task_idx, col_id);
         }
-        let task_id = self.get_selected_task().unwrap().id;
-        let column = self.get_selected_column_mut();
-        let task_idx = column.selected_task_idx;
-        let col_id = column.id;
-        column.tasks.remove(column.selected_task_idx);
-        self.select_next_task();
-        self.db_conn.delete_task(task_id);
-        self.db_conn.set_selected_task_for_column(task_idx, col_id);
     }
 }

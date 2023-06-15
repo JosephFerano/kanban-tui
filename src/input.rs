@@ -98,10 +98,6 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) {
 /// # Errors
 ///
 /// Crossterm `event::read()` might return an error
-///
-/// # Panics
-///
-/// Shouldn't really panic because there are checks to ensure we can unwrap safely
 pub fn handle(state: &mut State<'_>) -> Result<(), std::io::Error> {
     if let Event::Key(key) = event::read()? {
         if state.task_edit_state.is_some() {

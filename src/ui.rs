@@ -11,7 +11,7 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
         .direction(Direction::Horizontal)
         .constraints(
             vec![
-                Constraint::Percentage(100 / u16::try_from(state.columns.len()).unwrap());
+                Constraint::Percentage(100 / u16::try_from(state.columns.len()).unwrap_or(4));
                 state.columns.len()
             ]
             .as_ref(),

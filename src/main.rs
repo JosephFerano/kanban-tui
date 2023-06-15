@@ -40,7 +40,7 @@ fn main() -> anyhow::Result<(), Box<dyn Error>> {
         tx.commit()?;
     }
 
-    let mut state = State::new(conn);
+    let mut state = State::new(conn)?;
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();

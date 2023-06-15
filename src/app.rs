@@ -63,14 +63,13 @@ pub struct State<'a> {
 impl<'a> State<'a> {
     /// Creates a new [`State`].
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if we can't get all the columns from the database
-    #[must_use]
+    /// Returns an error if we can't read the database columns
     pub fn new(conn: Connection) -> Result<Self, Error> {
         let db_conn = db::DBConn::new(conn);
         let columns = db_conn.get_all_columns()?;
-        let selected_column = db_conn.get_selected_column();
+        let selected_column = db_conn.get_selected_column()?;
         Ok(State {
             columns,
             selected_column_idx: selected_column,
@@ -89,14 +88,14 @@ impl<'a> State<'a> {
         &mut self.columns[self.selected_column_idx]
     }
 
-    pub fn select_previous_column(&mut self) {
+    pub fn select_previous_column(&mut self) -> Result<(), Error> {
         self.selected_column_idx = self.selected_column_idx.saturating_sub(1);
-        self.db_conn.set_selected_column(self.selected_column_idx);
+        self.db_conn.set_selected_column(self.selected_column_idx)
     }
 
-    pub fn select_next_column(&mut self) {
+    pub fn select_next_column(&mut self) -> Result<(), Error> {
         self.selected_column_idx = min(self.selected_column_idx + 1, self.columns.len() - 1);
-        self.db_conn.set_selected_column(self.selected_column_idx);
+        self.db_conn.set_selected_column(self.selected_column_idx)
     }
 
     #[must_use]
@@ -126,16 +125,18 @@ impl<'a> State<'a> {
         column.tasks.get_mut(column.selected_task_idx)
     }
 
-    pub fn select_previous_task(&mut self) {
+    pub fn select_previous_task(&mut self) -> Result<(), Error> {
         let column = self.get_selected_column_mut();
         column.selected_task_idx = column.selected_task_idx.saturating_sub(1);
 
         let task_idx = column.selected_task_idx;
         let col_id = column.id;
-        self.db_conn.set_selected_task_for_column(task_idx, col_id);
+        self.db_conn
+            .set_selected_task_for_column(task_idx, col_id)?;
+        Ok(())
     }
 
-    pub fn select_next_task(&mut self) {
+    pub fn select_next_task(&mut self) -> Result<(), Error> {
         let column = self.get_selected_column_mut();
         column.selected_task_idx = min(
             column.selected_task_idx + 1,
@@ -144,25 +145,31 @@ impl<'a> State<'a> {
 
         let task_idx = column.selected_task_idx;
         let col_id = column.id;
-        self.db_conn.set_selected_task_for_column(task_idx, col_id);
+        self.db_conn
+            .set_selected_task_for_column(task_idx, col_id)?;
+        Ok(())
     }
 
-    pub fn select_first_task(&mut self) {
+    pub fn select_first_task(&mut self) -> Result<(), Error> {
         let column = self.get_selected_column_mut();
         column.selected_task_idx = 0;
 
         let task_idx = column.selected_task_idx;
         let col_id = column.id;
-        self.db_conn.set_selected_task_for_column(task_idx, col_id);
+        self.db_conn
+            .set_selected_task_for_column(task_idx, col_id)?;
+        Ok(())
     }
 
-    pub fn select_last_task(&mut self) {
+    pub fn select_last_task(&mut self) -> Result<(), Error> {
         let column = self.get_selected_column_mut();
         column.selected_task_idx = column.tasks.len().saturating_sub(1);
 
         let task_idx = column.selected_task_idx;
         let col_id = column.id;
-        self.db_conn.set_selected_task_for_column(task_idx, col_id);
+        self.db_conn
+            .set_selected_task_for_column(task_idx, col_id)?;
+        Ok(())
     }
 
     #[must_use]
@@ -175,16 +182,16 @@ impl<'a> State<'a> {
         })
     }
 
-    pub fn move_task_up(&mut self) {
-        self.move_task(false);
+    pub fn move_task_up(&mut self) -> Result<(), Error> {
+        self.move_task(false)
     }
 
-    pub fn move_task_down(&mut self) {
-        self.move_task(true);
+    pub fn move_task_down(&mut self) -> Result<(), Error> {
+        self.move_task(true)
     }
 
     /// Returns the move task down of this [`State`].
-    pub fn move_task(&mut self, is_down: bool) {
+    pub fn move_task(&mut self, is_down: bool) -> Result<(), Error> {
         let other_task = if is_down {
             self.get_next_task()
         } else {
@@ -205,74 +212,80 @@ impl<'a> State<'a> {
             }
 
             let col_id = column.id;
-            self.db_conn.swap_task_order(t2_id, t1_id);
-            self.db_conn.set_selected_task_for_column(task_idx, col_id);
+            self.db_conn.swap_task_order(t2_id, t1_id)?;
+            self.db_conn
+                .set_selected_task_for_column(task_idx, col_id)?;
         }
+        Ok(())
     }
 
-    pub fn move_task_previous_column(&mut self) {
-        self.move_task_to_column(false);
+    pub fn move_task_previous_column(&mut self) -> Result<(), Error> {
+        self.move_task_to_column(false)
     }
 
-    pub fn move_task_next_column(&mut self) {
-        self.move_task_to_column(true);
+    pub fn move_task_next_column(&mut self) -> Result<(), Error> {
+        self.move_task_to_column(true)
     }
 
-    fn move_task_to_column(&mut self, move_right: bool) {
+    fn move_task_to_column(&mut self, move_right: bool) -> Result<(), Error> {
         let can_move_right = move_right && self.selected_column_idx < self.columns.len() - 1;
         let can_move_left = !move_right && self.selected_column_idx > 0;
 
         let first_col = self.get_selected_column_mut();
         if first_col.tasks.is_empty() || !can_move_right && !can_move_left {
-            return;
+            // We're at the bounds so just ignore
+            return Ok(());
         }
         let t = first_col.tasks.remove(first_col.selected_task_idx);
 
         // Only move it if it was the last task
         if first_col.selected_task_idx == first_col.tasks.len() {
-            self.select_previous_task();
+            self.select_previous_task()?;
         }
 
         if move_right {
-            self.select_next_column();
+            self.select_next_column()?;
         } else {
-            self.select_previous_column();
+            self.select_previous_column()?;
         }
 
         let col = self.get_selected_column_mut();
         col.tasks.push(t);
-        self.select_last_task();
+        self.select_last_task()?;
         if let Some(task) = self.get_selected_task() {
             let col = self.get_selected_column();
-            self.db_conn.move_task_to_column(task, col);
-            self.db_conn.set_selected_column(self.selected_column_idx);
+            self.db_conn.move_task_to_column(task, col)?;
+            self.db_conn.set_selected_column(self.selected_column_idx)?;
         }
+        Ok(())
     }
 
-    pub fn add_new_task(&mut self, title: String, description: String) {
+    pub fn add_new_task(&mut self, title: String, description: String) -> Result<(), Error> {
         let col_id = self.get_selected_column().id;
-        let task = self.db_conn.insert_new_task(title, description, col_id);
+        let task = self.db_conn.create_new_task(title, description, col_id)?;
 
-        self.select_last_task();
+        self.select_last_task()?;
         let selected_task_idx = self.get_selected_column().selected_task_idx;
         self.db_conn
-            .set_selected_task_for_column(selected_task_idx, col_id);
+            .set_selected_task_for_column(selected_task_idx, col_id)?;
 
         self.get_selected_column_mut().tasks.push(task);
-        self.select_last_task()
+        self.select_last_task()?;
+        Ok(())
     }
 
-    pub fn edit_task(&mut self, title: String, description: String) {
+    pub fn edit_task(&mut self, title: String, description: String) -> Result<(), Error> {
         if let Some(selected_task) = self.get_selected_task_mut() {
             selected_task.title = title;
             selected_task.description = description;
             let cloned = selected_task.clone();
-            self.db_conn.update_task_text(&cloned);
+            self.db_conn.update_task_text(&cloned)?;
         }
+        Ok(())
     }
 
     /// Delete the currently selected task from the selected column
-    pub fn delete_task(&mut self) {
+    pub fn delete_task(&mut self) -> Result<(), Error> {
         if let Some(task) = self.get_selected_task() {
             let task_id = task.id;
             let column = self.get_selected_column_mut();
@@ -282,12 +295,14 @@ impl<'a> State<'a> {
             column.tasks.remove(task_idx);
 
             if column.selected_task_idx >= column.tasks.len() {
-                self.select_previous_task();
+                self.select_previous_task()?;
                 task_idx = task_idx.saturating_sub(1);
             }
 
-            self.db_conn.delete_task(task_id);
-            self.db_conn.set_selected_task_for_column(task_idx, col_id);
+            self.db_conn.delete_task(task_id)?;
+            self.db_conn
+                .set_selected_task_for_column(task_idx, col_id)?;
         }
+        Ok(())
     }
 }

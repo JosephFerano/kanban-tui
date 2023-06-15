@@ -195,15 +195,13 @@ impl<'a> State<'a> {
     /// We have conditions to ensure this doesn't panic but we still unwrap()
     pub fn move_task_up(&mut self) -> bool {
         let column = self.get_selected_column_mut();
-        if column.selected_task_idx > 0 {
-            column
-                .tasks
-                .swap(column.selected_task_idx, column.selected_task_idx - 1);
+        let task_idx = column.selected_task_idx;
+        if task_idx > 0 {
+            column.tasks.swap(task_idx, task_idx - 1);
             column.selected_task_idx -= 1;
+            let col_id = column.id;
             let task1_id = self.get_selected_task().unwrap().id;
             let task2_id = self.get_next_task().unwrap().id;
-            let col_id = column.id;
-            let task_idx = column.selected_task_idx;
             self.db_conn.swap_task_order(task1_id, task2_id);
             self.db_conn.set_selected_task_for_column(task_idx, col_id);
             true
@@ -223,9 +221,9 @@ impl<'a> State<'a> {
             let task_idx = column.selected_task_idx;
             column.tasks.swap(task_idx, task_idx + 1);
             column.selected_task_idx += 1;
+            let col_id = column.id;
             let task1_id = self.get_selected_task().unwrap().id;
             let task2_id = self.get_previous_task().unwrap().id;
-            let col_id = column.id;
             self.db_conn.swap_task_order(task1_id, task2_id);
             self.db_conn.set_selected_task_for_column(task_idx, col_id);
             true
@@ -277,13 +275,12 @@ impl<'a> State<'a> {
     }
 
     pub fn add_new_task(&mut self, title: String, description: String) {
-        let column = self.get_selected_column_mut();
-        let selected_task_idx = column.selected_task_idx;
-        let task = self.db_conn.insert_new_task(title, description, column.id);
-        column.tasks.push(task);
+        let col_id = self.get_selected_column().id;
+        let task = self.db_conn.insert_new_task(title, description, col_id);
         self.select_last_task();
-        self.db_conn
-            .set_selected_task_for_column(selected_task_idx, column.id);
+        let selected_task_idx = self.get_selected_column().selected_task_idx;
+        self.db_conn.set_selected_task_for_column(selected_task_idx, col_id);
+        self.get_selected_column_mut().tasks.push(task);
     }
 
     pub fn edit_task(&mut self, title: String, description: String) {
@@ -302,15 +299,16 @@ impl<'a> State<'a> {
     ///
     /// We have conditions to ensure this doesn't panic but we still unwrap()
     pub fn delete_task(&mut self) {
-        let column = self.get_selected_column_mut();
+        let column = self.get_selected_column();
         if column.tasks.is_empty() {
             return
         }
         let task_id = self.get_selected_task().unwrap().id;
+        let column = self.get_selected_column_mut();
+        let task_idx = column.selected_task_idx;
+        let col_id = column.id;
         column.tasks.remove(column.selected_task_idx);
         self.select_next_task();
-        let task_idx = column.selected_task_idx;
-        let col_id = self.get_selected_column().id;
         self.db_conn.delete_task(task_id);
         self.db_conn.set_selected_task_for_column(task_idx, col_id);
     }

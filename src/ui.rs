@@ -60,7 +60,7 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
 
 fn draw_task_info<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
     let block = Block::default().title("TASK INFO").borders(Borders::ALL);
-    if let Some(task) = state.get_selected_column().get_selected_task() {
+    if let Some(task) = state.get_selected_task() {
         let p = Paragraph::new(task.description.as_str())
             .block(block)
             .wrap(Wrap { trim: true });

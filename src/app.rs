@@ -3,6 +3,7 @@ use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::cmp::min;
 use tui_textarea::TextArea;
+use int_enum::IntEnum;
 
 use crate::db;
 
@@ -24,12 +25,15 @@ pub struct Task {
     pub description: String,
 }
 
-#[derive(Debug)]
+pub const EDIT_WINDOW_FOCUS_STATES: i8 = 4;
+
+#[repr(i8)]
+#[derive(Debug, IntEnum, Copy, Clone)]
 pub enum TaskEditFocus {
-    Title,
-    Description,
-    ConfirmBtn,
-    CancelBtn,
+    Title = 0,
+    Description = 1,
+    ConfirmBtn = 2,
+    CancelBtn = 3,
 }
 
 pub struct TaskState<'a> {
@@ -276,8 +280,9 @@ impl<'a> State<'a> {
         if let Some(selected_task) = self.get_selected_task_mut() {
             selected_task.title = title;
             selected_task.description = description;
-            let cloned = selected_task.clone();
-            self.db_conn.update_task_text(&cloned)?;
+        }
+        if let Some(task) = self.get_selected_task() {
+            self.db_conn.update_task_text(task)?;
         }
         Ok(())
     }

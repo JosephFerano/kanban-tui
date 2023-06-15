@@ -1,57 +1,65 @@
-use crate::app::{State, TaskEditFocus, TaskState};
+use crate::app::{State, TaskEditFocus, TaskState, EDIT_WINDOW_FOCUS_STATES};
 use crossterm::event;
 use crossterm::event::{Event, KeyCode};
+use int_enum::IntEnum;
+use anyhow::Error;
 
-pub fn handle_task_edit(state: &mut State<'_>, key: event::KeyEvent) -> Result<(), anyhow::Error> {
-    if let Some(mut task) = state.task_edit_state.take() {
-        let mut clear_task = false;
-        match task.focus {
-            // TODO: Handle wrapping around the enum rather than doing it manually
-            TaskEditFocus::Title => match key.code {
-                KeyCode::Tab => task.focus = TaskEditFocus::Description,
-                KeyCode::BackTab => task.focus = TaskEditFocus::CancelBtn,
-                KeyCode::Enter => (),
-                _ => {
-                    task.title.input(key);
-                }
-            },
-            TaskEditFocus::Description => match key.code {
-                KeyCode::Tab => task.focus = TaskEditFocus::ConfirmBtn,
-                KeyCode::BackTab => task.focus = TaskEditFocus::Title,
-                _ => {
-                    task.description.input(key);
-                }
-            },
-            TaskEditFocus::ConfirmBtn => match key.code {
-                KeyCode::Tab => task.focus = TaskEditFocus::CancelBtn,
-                KeyCode::BackTab => task.focus = TaskEditFocus::Description,
-                KeyCode::Enter => {
-                    let title = task.title.clone().into_lines().join("\n");
-                    let description = task.description.clone().into_lines().join("\n");
-                    if task.is_edit {
-                        state.edit_task(title, description)?;
-                    } else {
-                        state.add_new_task(title, description)?;
-                    }
-                    clear_task = true;
-                }
-                _ => (),
-            },
-            TaskEditFocus::CancelBtn => match key.code {
-                KeyCode::Tab => task.focus = TaskEditFocus::Title,
-                KeyCode::BackTab => task.focus = TaskEditFocus::ConfirmBtn,
-                KeyCode::Enter => clear_task = true,
-                _ => (),
-            },
-        }
-        if !clear_task {
-            state.task_edit_state = Some(task);
-        }
+pub fn cycle_focus(task: &mut TaskState<'_>, forward: bool) -> Result<(), Error>{
+    let cycle;
+    if forward {
+        cycle = (task.focus.int_value() + 1) % EDIT_WINDOW_FOCUS_STATES;
+    } else {
+        cycle = (task.focus.int_value() - 1) % EDIT_WINDOW_FOCUS_STATES;
     }
+    task.focus = TaskEditFocus::from_int(cycle)?;
     Ok(())
 }
 
-pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) -> Result<(), anyhow::Error> {
+pub fn handle_task_edit(state: &mut State<'_>, key: event::KeyEvent) -> Result<(), Error> {
+    // .take() the option so we can avoid borrow checker issues when
+    // we try to edit the task since that mutably borrows State, then
+    // assign later to task_edit_state
+    let updated_task = if let Some(mut task) = state.task_edit_state.take() {
+        match (key.code, task.focus) {
+            (KeyCode::Tab,     _) => {
+                cycle_focus(&mut task, true)?;
+                Some(task)
+            },
+            (KeyCode::BackTab, _) => {
+                cycle_focus(&mut task, false)?;
+                Some(task)
+            },
+            (KeyCode::Enter, TaskEditFocus::ConfirmBtn) => {
+                let title = task.title.clone().into_lines().join("\n");
+                let description = task.description.clone().into_lines().join("\n");
+                if task.is_edit {
+                    state.edit_task(title, description)?;
+                } else {
+                    state.add_new_task(title, description)?;
+                }
+                None
+            }
+            (KeyCode::Enter, TaskEditFocus::CancelBtn) => None,
+            // Ignore enter on the title bar to effectively make it single line
+            (KeyCode::Enter, TaskEditFocus::Title) => Some(task),
+            (_, TaskEditFocus::Title) => {
+                task.title.input(key);
+                Some(task)
+            },
+            (_, TaskEditFocus::Description) => {
+                task.description.input(key);
+                Some(task)
+            }
+            _ => Some(task)
+        }
+    } else {
+        None
+    };
+    state.task_edit_state = updated_task;
+    Ok(())
+}
+
+pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) -> Result<(), Error> {
     match key.code {
         KeyCode::Char('q') => state.quit = true,
         KeyCode::Char('h') | KeyCode::Left => state.select_previous_column()?,
@@ -75,7 +83,7 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) -> Result<(), an
 /// # Errors
 ///
 /// Crossterm `event::read()` might return an error
-pub fn handle(state: &mut State<'_>) -> Result<(), anyhow::Error> {
+pub fn handle(state: &mut State<'_>) -> Result<(), Error> {
     if let Event::Key(key) = event::read()? {
         if state.task_edit_state.is_some() {
             handle_task_edit(state, key)?;

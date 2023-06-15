@@ -1,7 +1,7 @@
-use anyhow::Error;
-use std::ops::{Deref, DerefMut};
 use crate::{Column, Task};
+use anyhow::Error;
 use rusqlite::{params, Connection, Result};
+use std::ops::{Deref, DerefMut};
 
 pub struct DBConn(Connection);
 
@@ -113,8 +113,8 @@ impl DBConn {
     ///
     /// Panics if something goes wrong with the SQL
     pub fn update_task_text(&self, task: &Task) -> Result<()> {
-        let mut stmt = self
-            .prepare("update task set title = ?2, description = ?3 where id = ?1")?;
+        let mut stmt =
+            self.prepare("update task set title = ?2, description = ?3 where id = ?1")?;
         stmt.execute((&task.id, &task.title, &task.description))?;
         Ok(())
     }
@@ -178,8 +178,8 @@ impl DBConn {
     ///
     /// Panics if something goes wrong with the SQL
     pub fn set_selected_column(&self, column_id: usize) -> Result<(), Error> {
-        let mut stmt = self
-            .prepare("insert or replace into app_state(key, value) values (?1, ?2)")?;
+        let mut stmt =
+            self.prepare("insert or replace into app_state(key, value) values (?1, ?2)")?;
         stmt.execute((&"selected_column", column_id.to_string()))?;
         Ok(())
     }
@@ -188,8 +188,7 @@ impl DBConn {
     ///
     /// Panics if something goes wrong with the SQL
     pub fn get_selected_column(&self) -> Result<usize> {
-        let mut stmt = self
-            .prepare("select value from app_state where key = ?1")?;
+        let mut stmt = self.prepare("select value from app_state where key = ?1")?;
         stmt.query_row(["selected_column"], |row| {
             let value: String = row.get::<usize, String>(0).unwrap();
             Ok(value.parse::<usize>().unwrap())
@@ -209,8 +208,7 @@ impl DBConn {
     ///
     /// Panics if something goes wrong with the SQL
     pub fn get_selected_task_for_column(&self, column_id: i32) -> Result<usize> {
-        let mut stmt = self
-            .prepare("select selected_task from kb_column where key = ?1")?;
+        let mut stmt = self.prepare("select selected_task from kb_column where key = ?1")?;
         stmt.query_row([column_id], |row| row.get(0))
     }
 }

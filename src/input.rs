@@ -40,9 +40,7 @@ pub fn handle_task_edit(state: &mut State<'_>, key: event::KeyEvent) -> Result<(
             TaskEditFocus::CancelBtn => match key.code {
                 KeyCode::Tab => task.focus = TaskEditFocus::Title,
                 KeyCode::BackTab => task.focus = TaskEditFocus::ConfirmBtn,
-                KeyCode::Enter => {
-                    clear_task = true;
-                }
+                KeyCode::Enter => clear_task = true,
                 _ => (),
             },
         }
@@ -56,41 +54,19 @@ pub fn handle_task_edit(state: &mut State<'_>, key: event::KeyEvent) -> Result<(
 pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) -> Result<(), anyhow::Error> {
     match key.code {
         KeyCode::Char('q') => state.quit = true,
-        KeyCode::Char('h') | KeyCode::Left => {
-            state.select_previous_column()?;
-        }
-        KeyCode::Char('j') | KeyCode::Down => {
-            state.select_next_task()?;
-        }
-        KeyCode::Char('k') | KeyCode::Up => {
-            state.select_previous_task()?;
-        }
-        KeyCode::Char('l') | KeyCode::Right => {
-            state.select_next_column()?;
-        }
-        KeyCode::Char('g') => {
-            state.select_first_task()?;
-        }
-        KeyCode::Char('G') => {
-            state.select_last_task()?;
-        }
-        KeyCode::Char('H') => {
-            state.move_task_previous_column()?;
-        }
-        KeyCode::Char('L') => {
-            state.move_task_next_column()?;
-        }
-        KeyCode::Char('J') => {
-            state.move_task_down()?;
-        }
-        KeyCode::Char('K') => {
-            state.move_task_up()?;
-        }
+        KeyCode::Char('h') | KeyCode::Left => state.select_previous_column()?,
+        KeyCode::Char('j') | KeyCode::Down => state.select_next_task()?,
+        KeyCode::Char('k') | KeyCode::Up => state.select_previous_task()?,
+        KeyCode::Char('l') | KeyCode::Right => state.select_next_column()?,
+        KeyCode::Char('g') => state.select_first_task()?,
+        KeyCode::Char('G') => state.select_last_task()?,
+        KeyCode::Char('H') => state.move_task_previous_column()?,
+        KeyCode::Char('L') => state.move_task_next_column()?,
+        KeyCode::Char('J') => state.move_task_down()?,
+        KeyCode::Char('K') => state.move_task_up()?,
         KeyCode::Char('n') => state.task_edit_state = Some(TaskState::default()),
         KeyCode::Char('e') => state.task_edit_state = state.get_task_state_from_current(),
-        KeyCode::Char('D') => {
-            state.delete_task()?;
-        }
+        KeyCode::Char('D') => state.delete_task()?,
         _ => {}
     }
     Ok(())

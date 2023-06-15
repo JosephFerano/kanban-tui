@@ -44,9 +44,8 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
             style = style.add_modifier(Modifier::REVERSED);
         };
         let mut s = Span::raw(column.name.as_str());
-        s.style =
-            Style::default().add_modifier(Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED);
-        // .fg(Color::White);
+        let mods = Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED;
+        s.style = Style::default().add_modifier(mods);
         let block = Block::default().title(s).borders(Borders::ALL);
         let inner_area = block.inner(columns[i]);
         let inner_block = Block::default().style(style);

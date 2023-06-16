@@ -27,16 +27,15 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
                 let mut style = Style::default();
                 let col_idx = state.selected_column_idx;
                 let task_idx = state.get_selected_column().selected_task_idx;
-                let item_txt;
+                let mut span;
                 if i == col_idx && j == task_idx {
                     style = style.add_modifier(Modifier::BOLD | Modifier::UNDERLINED);
-                    item_txt = format!("{} 👈", task.title);
+                    span = Span::raw(format!("{} 👈", task.title));
                 } else {
-                    item_txt = task.title.clone();
+                    span = Span::raw(&task.title);
                 }
-                let mut s = Span::raw(item_txt);
-                s.style = style;
-                ListItem::new(vec![Spans::from(s)])
+                span.style = style;
+                ListItem::new(vec![Spans::from(span)])
             })
             .collect();
         let mut style = Style::default();
@@ -102,10 +101,10 @@ pub fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, 
         .title(popup_title)
         .title_alignment(Alignment::Center)
         .borders(Borders::ALL);
+    let block_inner = block.inner(area);
     f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new("").block(block.clone()), area);
+    f.render_widget(Paragraph::new("").block(block), area);
     if let Some(task) = &mut state.task_edit_state {
-        let block_inner = block.inner(area);
         let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints(

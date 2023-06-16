@@ -1,9 +1,9 @@
 use anyhow::Error;
+use int_enum::IntEnum;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::cmp::min;
 use tui_textarea::TextArea;
-use int_enum::IntEnum;
 
 use crate::db;
 
@@ -55,6 +55,7 @@ impl Default for TaskState<'_> {
 }
 
 pub struct State<'a> {
+    pub project_name: String,
     pub selected_column_idx: usize,
     pub columns: Vec<Column>,
     pub db_conn: db::DBConn,
@@ -72,7 +73,15 @@ impl<'a> State<'a> {
         let db_conn = db::DBConn::new(conn);
         let columns = db_conn.get_all_columns()?;
         let selected_column = db_conn.get_selected_column()?;
+
+        let project_name = std::env::current_dir()?
+            .file_name()
+            .and_then(std::ffi::OsStr::to_str)
+            .unwrap_or("KANBAN PROJECT")
+            .to_string();
+
         Ok(State {
+            project_name,
             columns,
             selected_column_idx: selected_column,
             quit: false,

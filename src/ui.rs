@@ -35,9 +35,12 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
                     span = Span::raw(&task.title);
                 }
                 span.style = style;
+                // TODO: This is unoptimized, we can actually construct the list
+                // inside a single ListItem it seems
                 ListItem::new(vec![Spans::from(span)])
             })
             .collect();
+
         let mut style = Style::default();
         if i == state.selected_column_idx {
             style = style.add_modifier(Modifier::REVERSED);
@@ -49,8 +52,10 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
         let inner_area = block.inner(columns[i]);
         let inner_block = Block::default().style(style);
         let list = List::new(items).block(inner_block);
+
         let mut list_state = ListState::default();
         list_state.select(Some(column.selected_task_idx + 1));
+
         f.render_widget(block, columns[i]);
         f.render_stateful_widget(list, inner_area, &mut list_state);
     }
@@ -95,7 +100,7 @@ fn centered_rect_for_popup(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
         .split(popup_layout[1])[1]
 }
 
-pub fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, popup_title: &str) {
+fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, popup_title: &str) {
     let area = centered_rect_for_popup(45, 60, f.size());
     let block = Block::default()
         .title(popup_title)
@@ -130,30 +135,22 @@ pub fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, 
             )
             .split(layout[2]);
 
-        let create_style;
-        let create_txt;
-        let cancel_style;
-        let cancel_txt;
-        match task.focus {
-            TaskEditFocus::ConfirmBtn => {
-                create_style = Style::default().add_modifier(Modifier::BOLD);
-                cancel_style = Style::default();
-                create_txt = "[Confirm]";
-                cancel_txt = " Cancel ";
-            }
-            TaskEditFocus::CancelBtn => {
-                create_style = Style::default();
-                cancel_style = Style::default().add_modifier(Modifier::BOLD);
-                create_txt = " Confirm ";
-                cancel_txt = "[Cancel]";
-            }
-            _ => {
-                create_style = Style::default();
-                cancel_style = Style::default();
-                create_txt = " Confirm ";
-                cancel_txt = " Cancel ";
-            }
-        }
+        let (create_style, cancel_style, create_txt, cancel_txt) = match task.focus {
+            TaskEditFocus::ConfirmBtn => (
+                Style::default().add_modifier(Modifier::BOLD),
+                Style::default(),
+                "[Confirm]",
+                " Cancel ",
+            ),
+            TaskEditFocus::CancelBtn => (
+                Style::default(),
+                Style::default().add_modifier(Modifier::BOLD),
+                " Confirm ",
+                "[Cancel]",
+            ),
+            _ => (Style::default(), Style::default(), " Confirm ", " Cancel "),
+        };
+
         let create_btn = Paragraph::new(create_txt).style(create_style);
         let cancel_btn = Paragraph::new(cancel_txt).style(cancel_style);
         f.render_widget(create_btn, buttons[1]);
@@ -194,6 +191,40 @@ pub fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, 
     }
 }
 
+fn draw_project_stats<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &mut State<'_>) {
+    let block = Block::default()
+        .title("PROJECT STATS")
+        .borders(Borders::ALL);
+
+    let c1_len = state.columns[0].tasks.len();
+    let c2_len = state.columns[1].tasks.len();
+    let c3_len = state.columns[2].tasks.len();
+    let c4_len = state.columns[3].tasks.len();
+    let tocomplete_total = c1_len + c2_len + c3_len;
+    let percentage = (c3_len as f32 / tocomplete_total as f32 * 100.0) as u8;
+    let list = List::new(
+        vec![
+            ListItem::new(vec![
+                Spans::from("Tasks per Column:"),
+                Spans::from(format!("  Todo ({})", c1_len)),
+                Spans::from(format!("  In Progress ({})", c2_len)),
+                Spans::from(format!("  Done ({})", c3_len)),
+                Spans::from(format!("  Ideas ({})", c4_len)),
+                Spans::from(
+                    format!(
+                        "Progress: {} / {} - {}%",
+                        c3_len,
+                        tocomplete_total,
+                        percentage
+                ))
+            ]
+        )]
+    )
+    .block(block);
+
+    f.render_widget(list, area);
+}
+
 /// Macro to generate keybindings string at compile time
 macro_rules! unroll {
     (($first_a:literal, $first_b:literal), $(($a:literal, $b:literal)),*) => {
@@ -206,26 +237,35 @@ pub fn draw<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>) {
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Percentage(10),
-                Constraint::Percentage(65),
-                Constraint::Percentage(20),
-                Constraint::Length(3),
+                Constraint::Length(2),
+                Constraint::Min(10),
+                Constraint::Max(10),
+                Constraint::Length(2),
             ]
             .as_ref(),
         )
         .split(f.size());
 
-    let block = Block::default().title("KANBAN BOARD").borders(Borders::ALL);
+    let block = Block::default()
+        .title(format!("⎸ {} ⎹", state.project_name))
+        .title_alignment(Alignment::Center)
+        .borders(Borders::TOP);
     f.render_widget(block, main_layout[0]);
 
     draw_tasks(f, main_layout[1], state);
 
-    draw_task_info(f, main_layout[2], state);
+    let info_area = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(vec![Constraint::Min(60), Constraint::Max(60)].as_ref())
+        .split(main_layout[2]);
+
+    draw_task_info(f, info_area[0], state);
+    draw_project_stats(f, info_area[1], state);
 
     let block = Block::default().title("KEYBINDINGS").borders(Borders::TOP);
 
     let foot_txt = unroll![
-        ("quit", "c"),
+        ("quit", "q"),
         ("navigation", "hjkl"),
         ("move task", "HJKL"),
         ("new task", "n"),

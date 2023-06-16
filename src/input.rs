@@ -1,10 +1,10 @@
 use crate::app::{State, TaskEditFocus, TaskState, EDIT_WINDOW_FOCUS_STATES};
+use anyhow::Error;
 use crossterm::event;
 use crossterm::event::{Event, KeyCode};
 use int_enum::IntEnum;
-use anyhow::Error;
 
-pub fn cycle_focus(task: &mut TaskState<'_>, forward: bool) -> Result<(), Error>{
+pub fn cycle_focus(task: &mut TaskState<'_>, forward: bool) -> Result<(), Error> {
     let cycle;
     if forward {
         cycle = (task.focus.int_value() + 1) % EDIT_WINDOW_FOCUS_STATES;
@@ -21,14 +21,14 @@ pub fn handle_task_edit(state: &mut State<'_>, key: event::KeyEvent) -> Result<(
     // assign later to task_edit_state
     let updated_task = if let Some(mut task) = state.task_edit_state.take() {
         match (key.code, task.focus) {
-            (KeyCode::Tab,     _) => {
+            (KeyCode::Tab, _) => {
                 cycle_focus(&mut task, true)?;
                 Some(task)
-            },
+            }
             (KeyCode::BackTab, _) => {
                 cycle_focus(&mut task, false)?;
                 Some(task)
-            },
+            }
             (KeyCode::Enter, TaskEditFocus::ConfirmBtn) => {
                 // The structure of this function is so we avoid an
                 // unncessary clone() here. We can just transfer
@@ -49,12 +49,12 @@ pub fn handle_task_edit(state: &mut State<'_>, key: event::KeyEvent) -> Result<(
             (_, TaskEditFocus::Title) => {
                 task.title.input(key);
                 Some(task)
-            },
+            }
             (_, TaskEditFocus::Description) => {
                 task.description.input(key);
                 Some(task)
             }
-            _ => Some(task)
+            _ => Some(task),
         }
     } else {
         None
@@ -79,7 +79,7 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) -> Result<(), Er
         KeyCode::Char('n') => Ok(state.task_edit_state = Some(TaskState::default())),
         KeyCode::Char('e') => Ok(state.task_edit_state = state.get_task_state_from_current()),
         KeyCode::Char('D') => state.delete_task(),
-        _ => Ok(())
+        _ => Ok(()),
     }
 }
 

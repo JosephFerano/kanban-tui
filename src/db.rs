@@ -86,7 +86,13 @@ impl DBConn {
         column_id: i64,
     ) -> Result<Task> {
         let mut stmt =
-            self.prepare("insert into task(title, description, column_id) values (?1, ?2, ?3)")?;
+            self.prepare(
+                "insert into task(title, description, column_id, sort_order)
+                values (?1, ?2, ?3,
+                  (coalesce(1 +
+                    (select sort_order from task
+                     where column_id = ?3 order by sort_order desc limit 1),
+                  0)))")?;
         stmt.execute(params![title, description, column_id])?;
         let id = self.last_insert_rowid();
         Ok(Task {
@@ -135,11 +141,25 @@ impl DBConn {
                   where column_id = ?2 order by sort_order desc limit 1),
                   0)
              where task.id = ?1",
-            )
-            .unwrap();
-        stmt.execute((&task.id, &target_column.id)).unwrap();
+            )?;
+        stmt.execute((&task.id, &target_column.id))?;
         self.set_selected_task_for_column(target_column.selected_task_idx, target_column.id)?;
         Ok(())
+    }
+
+    /// This is a helper function in case we need to debug sort_order, because I ran into
+    /// a bug when I forgot to insert the sort_order when creating a task
+    #[allow(dead_code)]
+    fn get_sort_order(&self) -> Result<Vec<(i32, String, usize)>> {
+        let mut stmt = self.prepare(
+            "select id,title,sort_order from task where column_id = 1")?;
+        let mut rows = stmt.query(())?;
+
+        let mut tasks = Vec::new();
+        while let Some(row) = rows.next()? {
+            tasks.push((row.get(0)?, row.get(1)?, row.get(2)?,))
+        }
+        Ok(tasks)
     }
 
     /// .
@@ -148,29 +168,29 @@ impl DBConn {
     ///
     /// Panics if something goes wrong with the SQL
     pub fn swap_task_order(&mut self, task1_id: i64, task2_id: i64) -> Result<()> {
-        let tx = self.transaction().unwrap();
+        let tx = self.transaction()?;
 
         tx.execute(
             "create temp table temp_order as select sort_order from task where id = ?1",
             [&task1_id],
-        )
-        .unwrap();
+        )?;
 
         tx.execute(
-            "update task set sort_order = (select sort_order from task where id = ?2)
-         where id = ?1",
+            "update task
+             set sort_order = (select sort_order from task where id = ?2)
+             where id = ?1",
             (task1_id, task2_id),
-        )
-        .unwrap();
+        )?;
 
         tx.execute(
             "update task set sort_order = (select sort_order from temp_order) where id = ?1",
             [&task2_id],
-        )
-        .unwrap();
-        tx.execute("drop table temp_order", ()).unwrap();
+        )?;
 
-        tx.commit().unwrap();
+        tx.execute("drop table temp_order", ())?;
+
+        tx.commit()?;
+
         Ok(())
     }
 
@@ -190,8 +210,9 @@ impl DBConn {
     pub fn get_selected_column(&self) -> Result<usize> {
         let mut stmt = self.prepare("select value from app_state where key = ?1")?;
         stmt.query_row(["selected_column"], |row| {
-            let value: String = row.get::<usize, String>(0).unwrap();
-            Ok(value.parse::<usize>().unwrap())
+            let value: String = row.get::<usize, String>(0)?;
+            value.parse::<usize>()
+                .map_err(|_| rusqlite::Error::InvalidQuery)
         })
     }
 

@@ -218,12 +218,13 @@ impl<'a> State<'a> {
             } else {
                 column.selected_task_idx -= 1;
             }
+            let task_idx = column.selected_task_idx;
 
             let col_id = column.id;
-            self.db_conn.swap_task_order(t2_id, t1_id)?;
+            self.db_conn.swap_task_order(t1_id, t2_id)?;
             self.db_conn
                 .set_selected_task_for_column(task_idx, col_id)?;
-        }
+       }
         Ok(())
     }
 

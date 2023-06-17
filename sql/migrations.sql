@@ -5,7 +5,7 @@ create table if not exists task
     id integer primary key autoincrement,
     title text not null,
     description text not null,
-    sort_order integer not null default 0,
+    sort_order integer not null,
     column_id integer,
     foreign key (column_id) references kb_column(id)
 );

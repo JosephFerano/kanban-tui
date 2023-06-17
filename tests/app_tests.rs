@@ -1,12 +1,6 @@
-// - [X] Adding
-// - [X] Selecting general
-// - [X] Selecting top/bottom
-// - [X] Moving
-// - [X] Editing
-// - [X] Deleting
 #[cfg(test)]
 mod app_tests {
-    use anyhow::Error;
+    use anyhow::{Error};
     use kanban_tui::State;
     use rusqlite::Connection;
 
@@ -165,10 +159,12 @@ mod app_tests {
 
         state.add_new_task(String::from("T1"), String::from("D1"))?;
         state.add_new_task(String::from("T2"), String::from("D2"))?;
+
         state.select_previous_task()?;
         state.move_task_up()?;
         state.move_task_down()?;
         state.move_task_down()?;
+
         assert_eq!(&state.columns[0].tasks[1].title, "T1");
         assert_eq!(&state.columns[0].tasks[0].title, "T2");
         state.select_next_column()?;
@@ -176,12 +172,14 @@ mod app_tests {
         state.move_task_next_column()?;
         assert_eq!(state.columns[1].tasks.len(), 0);
         assert_eq!(state.columns[2].tasks.len(), 1);
+
         for _ in 0..5 {
             state.move_task_next_column()?;
         }
         for _ in 0..4 {
             state.move_task_previous_column()?;
         }
+
         assert_eq!(state.columns[0].tasks.len(), 3);
         assert_eq!(state.columns[1].tasks.len(), 0);
         assert_eq!(state.columns[2].tasks.len(), 0);
@@ -202,9 +200,9 @@ mod app_tests {
         // make sure everything was saved correctly
         let mut state = State::new(state.db_conn.0)?;
 
-        assert_eq!(state.get_selected_task().unwrap().title, "T2");
-        state.select_next_task()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T1");
+        state.select_next_task()?;
+        assert_eq!(state.get_selected_task().unwrap().title, "T3");
         state.select_next_task()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T3");
         state.select_first_task()?;
@@ -256,8 +254,8 @@ mod app_tests {
         // make sure everything was saved correctly
         let state = State::new(state.db_conn.0)?;
 
-        assert_eq!(state.get_selected_task().unwrap().title, "T2");
-        assert_eq!(state.get_selected_task().unwrap().description, "D1");
+        assert_eq!(state.get_selected_task().unwrap().title, "T3");
+        assert_eq!(state.get_selected_task().unwrap().description, "D3");
 
         Ok(())
     }

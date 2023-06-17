@@ -1,5 +1,3 @@
-#-*- mode: org -*-
-
 # kanban-tui
 
 

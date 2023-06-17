@@ -7,9 +7,6 @@ use tui_textarea::TextArea;
 
 use crate::db;
 
-#[cfg(test)]
-mod tests;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Column {
     pub id: i64,

@@ -35,8 +35,6 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
                     span = Span::raw(&task.title);
                 }
                 span.style = style;
-                // TODO: This is unoptimized, we can actually construct the list
-                // inside a single ListItem it seems
                 ListItem::new(vec![Spans::from(span)])
             })
             .collect();
@@ -202,24 +200,17 @@ fn draw_project_stats<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &mut 
     let c4_len = state.columns[3].tasks.len();
     let tocomplete_total = c1_len + c2_len + c3_len;
     let percentage = (c3_len as f32 / tocomplete_total as f32 * 100.0) as u8;
-    let list = List::new(
-        vec![
-            ListItem::new(vec![
-                Spans::from("Tasks per Column:"),
-                Spans::from(format!("  Todo ({})", c1_len)),
-                Spans::from(format!("  In Progress ({})", c2_len)),
-                Spans::from(format!("  Done ({})", c3_len)),
-                Spans::from(format!("  Ideas ({})", c4_len)),
-                Spans::from(
-                    format!(
-                        "Progress: {} / {} - {}%",
-                        c3_len,
-                        tocomplete_total,
-                        percentage
-                ))
-            ]
-        )]
-    )
+    let list = List::new(vec![ListItem::new(vec![
+        Spans::from("Tasks per Column:"),
+        Spans::from(format!("  Todo ({})", c1_len)),
+        Spans::from(format!("  In Progress ({})", c2_len)),
+        Spans::from(format!("  Done ({})", c3_len)),
+        Spans::from(format!("  Ideas ({})", c4_len)),
+        Spans::from(format!(
+            "Progress: {} / {} - {}%",
+            c3_len, tocomplete_total, percentage
+        )),
+    ])])
     .block(block);
 
     f.render_widget(list, area);

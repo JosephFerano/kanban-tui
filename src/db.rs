@@ -3,7 +3,7 @@ use anyhow::Error;
 use rusqlite::{params, Connection, Result};
 use std::ops::{Deref, DerefMut};
 
-pub struct DBConn(Connection);
+pub struct DBConn(pub Connection);
 
 impl DerefMut for DBConn {
     fn deref_mut(&mut self) -> &mut Self::Target {

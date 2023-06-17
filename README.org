@@ -19,6 +19,8 @@ of minimalism, then I might consider working on it more.
 - Vim-like keybindings: For those who have ~hjkl~ burned into their skull
 - SQLite backed: Overkill maybe? At least I like SQL
 - No bloat: Just create a task and move it around
+** Showcase
+[[./assets/screen1.png]]
 ** Building and Installing
 To build and install kanban-tui, follow these steps:
 - Install Rust: If you don't have Rust installed, you can get it from [[https://www.rust-lang.org/tools/install][here]].

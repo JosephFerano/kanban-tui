@@ -21,6 +21,7 @@ of minimalism, then I might consider working on it more.
 - No bloat: Just create a task and move it around
 ** Showcase
 [[./assets/screen1.png]]
+[[file:https://asciinema.org/a/QjEfh3kzvKMHTLRv2vWqr0mzX.svg][asciicast]]
 ** Building and Installing
 To build and install kanban-tui, follow these steps:
 - Install Rust: If you don't have Rust installed, you can get it from [[https://www.rust-lang.org/tools/install][here]].

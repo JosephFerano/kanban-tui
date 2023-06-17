@@ -1,11 +1,14 @@
 #+OPTIONS: toc:nil
 
 * kanban-tui
-** Why kanban-tui?
+** About
 kanban-tui is a lightweight, minimalist, terminal-based [[https://en.wikipedia.org/wiki/Kanban_board][Kanban]] tool built in
 Rust. Keybindings are vim-like, making it pretty fast to navigate and handle
 tasks. Currently it's not that feature-rich, but it provides all the essential
 functionality you need to manage tasks in the classic Kanban way.
+
+It uses [[https://crates.io/crates/ratatui][ratatui]] for the TUI interface rendering and [[https://crates.io/crates/rusqlite][rusqlite]] for data
+persistence. Both awesome crates to work with.
 ** Motivation
 Decided to make kanban-tui to work on a non-trivial Rust application. I enjoy
 TUIs for their simplicity and efficiency. I don't really plan on using this, as
@@ -18,25 +21,32 @@ of minimalism, then I might consider working on it more.
 - No bloat: Just create a task and move it around
 ** Building and Installing
 To build and install kanban-tui, follow these steps:
-- Install Rust: If you don't have Rust installed, you can get it from
-  [here](https://www.rust-lang.org/tools/install).
-- Clone this repository
+- Install Rust: If you don't have Rust installed, you can get it from [[https://www.rust-lang.org/tools/install][here]].
+- Clone this repository, cd into it
 - Build the project: `cargo build --release`
 - The built binary can be found in `target/release/kanban-tui`
 - Optionally, you can move the binary to a directory in your PATH for easier
   access.
 ** Usage
-kanban-tui keeps it super simple. Just create tasks and move them to the columns
-that indicate their status.
+It is recommended to run `kanban-tui` from the root of your project so it can
+pick up the project's name. This automatically creates a SQLite database there
+named ~kanban.db~.
+
+If you prefer a different name for the database file, you can specify the file
+name when running the app, like ~kanban-tui todos.kanban~ as an example.
+
+Once open, start creating tasks, then move them across columns to track their
+status - from "To Do", through "In Progress", to "Done". All task and navigation
+operations are performed through simple keybindings.
 ** Keybindings
-- Quit: "q"
-- Navigation: "hjkl"
-- Move Task: "HJKL"
-- New Task: "n"
-- Edit Task: "e"
-- Cycle Edit Fields: "Tab"
-- Column Top: "g"
-- Column Bottom: "G"
+- Quit: ~q~
+- Navigation: ~hjkl~
+- Move Task: ~HJKL~
+- New Task: ~n~
+- Edit Task: ~e~
+- Cycle Form Fields: ~Tab~
+- Column Top: ~g~
+- Column Bottom: ~G~
 ** Potential Future Features
 - Timestamps for tasks (created, moved, completed)
 - Customizable column (name, amount, etc;)
@@ -47,6 +57,9 @@ that indicate their status.
 - Copy task
 - Reports
 - Export to other formats
+** Acknolwedgements
+[[https://github.com/Karrq][Karrq]] helped suggest a lot of things design wise and even contributed a handie
+little macro.
 ** Contributions
 While the project is primarily developed to practice Rust, if for some reason
 you like this and want to contribute, open an issue and we can discuss whatever.

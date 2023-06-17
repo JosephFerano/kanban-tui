@@ -16,19 +16,19 @@ I'm an [[https://orgmode.org/][org]] person myself, but if someone actually deci
 of minimalism, then I might consider working on it more.
 ** Features
 - Terminal-based: Enjoy the simplicity and speed of a text-based interface
-- Vim-like keybindings: For those who have `hjkl` burned into their skull
+- Vim-like keybindings: For those who have ~hjkl~ burned into their skull
 - SQLite backed: Overkill maybe? At least I like SQL
 - No bloat: Just create a task and move it around
 ** Building and Installing
 To build and install kanban-tui, follow these steps:
 - Install Rust: If you don't have Rust installed, you can get it from [[https://www.rust-lang.org/tools/install][here]].
 - Clone this repository, cd into it
-- Build the project: `cargo build --release`
-- The built binary can be found in `target/release/kanban-tui`
+- Build the project: ~cargo build --release~
+- The built binary can be found in ~target/release/kanban-tui~
 - Optionally, you can move the binary to a directory in your PATH for easier
   access.
 ** Usage
-It is recommended to run `kanban-tui` from the root of your project so it can
+It is recommended to run ~kanban-tui~ from the root of your project so it can
 pick up the project's name. This automatically creates a SQLite database there
 named ~kanban.db~.
 

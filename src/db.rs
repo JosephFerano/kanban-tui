@@ -3,7 +3,13 @@ use anyhow::Error;
 use rusqlite::{params, Connection, Result};
 use std::ops::{Deref, DerefMut};
 
-pub struct DBConn(pub Connection);
+/// Simple one field struct to wrap a  [`rusqlite::Connection`] so we
+/// can assign our own methods.
+pub struct DBConn(
+    /// Unfortunately remains public for now so we can do integration tests
+    /// and reuse to simulate exiting and relaunching the app.
+    pub Connection
+);
 
 impl DerefMut for DBConn {
     fn deref_mut(&mut self) -> &mut Self::Target {
@@ -24,22 +30,21 @@ impl DBConn {
         DBConn(conn)
     }
 
-    /// .
+    /// Query tasks in a [`Column`] by using the column's [`Column::id`].
     ///
     /// # Errors
     ///
-    /// This function will return an error if something is wrong with the SQL
-    pub fn get_tasks_by_column(&self, column_name: &String) -> Result<Vec<Task>> {
+    /// Returns an error if something is wrong with the SQL.
+    pub fn get_tasks_by_column(&self, column_id: i64) -> Result<Vec<Task>> {
         let mut stmt = self.prepare(
             r#"
             select task.id, title, description from task
-            join kb_column on column_id = kb_column.id
-            where kb_column.name = ?1
+            where column_id = ?1
             order by sort_order
         "#,
         )?;
         let mut tasks = Vec::new();
-        let rows = stmt.query_map([column_name], |row| {
+        let rows = stmt.query_map([column_id], |row| {
             Ok(Task {
                 id: row.get(0)?,
                 title: row.get(1)?,
@@ -52,20 +57,22 @@ impl DBConn {
         Ok(tasks)
     }
 
-    /// .
+    /// Uses [get_tasks_by_column][`DBConn::get_tasks_by_column`] over
+    /// a loop to get all [`Column`] populated with the vec of.
+    /// [`Task`]
     ///
     /// # Errors
     ///
-    /// This function will return an error if there are issues with the SQL
+    /// Returns an error if something is wrong with the SQL.
     pub fn get_all_columns(&self) -> Result<Vec<Column>> {
         let mut stmt = self.prepare("select id, name, selected_task from kb_column")?;
         let columns = stmt
             .query_map((), |row| {
-                let name = row.get(1)?;
+                let id = row.get(0)?;
                 Ok(Column {
-                    id: row.get(0)?,
-                    tasks: self.get_tasks_by_column(&name)?,
-                    name,
+                    id,
+                    tasks: self.get_tasks_by_column(id)?,
+                    name: row.get(1)?,
                     selected_task_idx: row.get(2)?,
                 })
             })?
@@ -74,11 +81,12 @@ impl DBConn {
         Ok(columns)
     }
 
-    /// .
+    /// Insert a new task into the DB given a title and description,
+    /// then return the [`Task`] with the ID provided by the DB.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if something goes wrong with the SQL
+    /// Returns an error if something is wrong with the SQL.
     pub fn create_new_task(
         &self,
         title: String,
@@ -102,22 +110,22 @@ impl DBConn {
         })
     }
 
-    /// .
+    /// Deletes a [`Task`] given it's ID.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if something goes wrong with the SQL
+    /// Returns an error if something is wrong with the SQL.
     pub fn delete_task(&self, task_id: i64) -> Result<()> {
         let mut stmt = self.prepare("delete from task where id = ?1")?;
         stmt.execute([task_id])?;
         Ok(())
     }
 
-    /// .
+    /// Updates an existing [`Task`]'s `title` and `description`.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if something goes wrong with the SQL
+    /// Returns an error if something is wrong with the SQL.
     pub fn update_task_text(&self, task: &Task) -> Result<()> {
         let mut stmt =
             self.prepare("update task set title = ?2, description = ?3 where id = ?1")?;
@@ -125,11 +133,11 @@ impl DBConn {
         Ok(())
     }
 
-    /// .
+    /// Moves a [`Task`] to the target [`Column`] and updates the sorting order.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if something goes wrong with the SQL
+    /// Returns an error if something is wrong with the SQL.
     pub fn move_task_to_column(&self, task: &Task, target_column: &Column) -> Result<()> {
         let mut stmt = self
             .prepare(
@@ -148,7 +156,7 @@ impl DBConn {
     }
 
     /// This is a helper function in case we need to debug sort_order, because I ran into
-    /// a bug when I forgot to insert the sort_order when creating a task
+    /// a bug when I forgot to insert the sort_order when creating a task.
     #[allow(dead_code)]
     fn get_sort_order(&self) -> Result<Vec<(i32, String, usize)>> {
         let mut stmt = self.prepare(
@@ -162,11 +170,14 @@ impl DBConn {
         Ok(tasks)
     }
 
-    /// .
+    /// The order of a [`Task`] in a [`Column`] needs to be saved to
+    /// the DB because SQLite doesn't have a way to handle the
+    /// ordering the internal [`Vec<Task>`] has. This takes the
+    /// current sorting order of two tasks and swaps them.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if something goes wrong with the SQL
+    /// Returns an error if something is wrong with the SQL.
     pub fn swap_task_order(&mut self, task1_id: i64, task2_id: i64) -> Result<()> {
         let tx = self.transaction()?;
 
@@ -194,9 +205,13 @@ impl DBConn {
         Ok(())
     }
 
-    /// # Panics
+    /// Saves the currently selected column's index to `app_state` so
+    /// when the user reloads the project, they start on the
+    /// [`Column`] they were last on.
     ///
-    /// Panics if something goes wrong with the SQL
+    /// # Errors
+    ///
+    /// Returns an error if something is wrong with the SQL.
     pub fn set_selected_column(&self, column_id: usize) -> Result<(), Error> {
         let mut stmt =
             self.prepare("insert or replace into app_state(key, value) values (?1, ?2)")?;
@@ -204,9 +219,11 @@ impl DBConn {
         Ok(())
     }
 
-    /// # Panics
+    /// Get's the user's last selected [`Column`] before exiting.
     ///
-    /// Panics if something goes wrong with the SQL
+    /// # Errors
+    ///
+    /// Returns an error if something is wrong with the SQL.
     pub fn get_selected_column(&self) -> Result<usize> {
         let mut stmt = self.prepare("select value from app_state where key = ?1")?;
         stmt.query_row(["selected_column"], |row| {
@@ -216,18 +233,26 @@ impl DBConn {
         })
     }
 
-    /// # Panics
+    /// Saves the index currently selected [`Task`] in a [`Column`] so
+    /// when the user reloads the project, each column selects the has
+    /// the last selected task before switching to another column or
+    /// exiting the app.
     ///
-    /// Panics if something goes wrong with the SQL
+    /// # Errors
+    ///
+    /// Returns an error if something is wrong with the SQL.
     pub fn set_selected_task_for_column(&self, task_idx: usize, column_id: i64) -> Result<()> {
         let mut stmt = self.prepare("update kb_column set selected_task = ?2 where id = ?1")?;
         stmt.execute((column_id, task_idx))?;
         Ok(())
     }
 
-    /// # Panics
+    /// Get's each [`Column`]'s 's last selected [`Task`] before
+    /// switching or exiting.
     ///
-    /// Panics if something goes wrong with the SQL
+    /// # Errors
+    ///
+    /// Returns an error if something is wrong with the SQL.
     pub fn get_selected_task_for_column(&self, column_id: i32) -> Result<usize> {
         let mut stmt = self.prepare("select selected_task from kb_column where key = ?1")?;
         stmt.query_row([column_id], |row| row.get(0))

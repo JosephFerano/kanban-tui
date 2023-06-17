@@ -25,10 +25,10 @@ mod app_tests {
 
         state.add_new_task(String::from("T1"), String::from("D1"))?;
         state.add_new_task(String::from("T2"), String::from("D2"))?;
-        state.select_next_column()?;
-        state.select_next_column()?;
+        state.select_column_right()?;
+        state.select_column_right()?;
         state.add_new_task(String::from("T3"), String::from("D3"))?;
-        state.select_previous_column()?;
+        state.select_column_left()?;
         state.add_new_task(String::from("T4"), String::from("D4"))?;
 
         assert_eq!(state.columns[0].tasks.len(), 2);
@@ -63,33 +63,33 @@ mod app_tests {
         state.move_task_down()?;
         state.move_task_down()?;
         for _ in 0..10 {
-            state.select_next_column()?;
+            state.select_column_right()?;
         }
         for _ in 0..10 {
-            state.select_previous_column()?;
+            state.select_column_left()?;
         }
         state.add_new_task(String::from("T1"), String::from("D1"))?;
         assert_eq!(state.get_selected_task().unwrap().title, "T1");
         state.add_new_task(String::from("T2"), String::from("D2"))?;
         assert_eq!(state.get_selected_task().unwrap().title, "T2");
-        state.select_previous_task()?;
+        state.select_task_above()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T1");
         for _ in 0..6 {
-            state.select_next_column()?;
+            state.select_column_right()?;
         }
-        state.select_previous_column()?;
+        state.select_column_left()?;
         state.add_new_task(String::from("T3"), String::from("D3"))?;
         assert_eq!(state.get_selected_task().unwrap().title, "T3");
         assert_eq!(state.get_selected_column().name, "Done");
         for _ in 0..6 {
-            state.select_next_column()?;
+            state.select_column_right()?;
         }
         for _ in 0..4 {
-            state.select_previous_column()?;
+            state.select_column_left()?;
         }
         assert_eq!(state.get_selected_task().unwrap().title, "T1");
-        state.select_next_column()?;
-        state.select_next_column()?;
+        state.select_column_right()?;
+        state.select_column_right()?;
 
 
         // Reload the data from the database then rerun the asserts to
@@ -97,13 +97,13 @@ mod app_tests {
         let mut state = State::new(state.db_conn.0)?;
 
         assert_eq!(state.get_selected_task().unwrap().title, "T3");
-        state.select_next_task()?;
-        state.select_next_task()?;
+        state.select_task_below()?;
+        state.select_task_below()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T3");
-        state.select_previous_column()?;
-        state.select_previous_column()?;
+        state.select_column_left()?;
+        state.select_column_left()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T1");
-        state.select_next_task()?;
+        state.select_task_below()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T2");
 
         Ok(())
@@ -128,8 +128,8 @@ mod app_tests {
         state.select_first_task()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T2");
         state.select_last_task()?;
-        state.select_previous_task()?;
-        state.select_previous_task()?;
+        state.select_task_above()?;
+        state.select_task_above()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T9");
         for _ in 0..10 {
             state.move_task_up()?;
@@ -160,24 +160,24 @@ mod app_tests {
         state.add_new_task(String::from("T1"), String::from("D1"))?;
         state.add_new_task(String::from("T2"), String::from("D2"))?;
 
-        state.select_previous_task()?;
+        state.select_task_above()?;
         state.move_task_up()?;
         state.move_task_down()?;
         state.move_task_down()?;
 
         assert_eq!(&state.columns[0].tasks[1].title, "T1");
         assert_eq!(&state.columns[0].tasks[0].title, "T2");
-        state.select_next_column()?;
+        state.select_column_right()?;
         state.add_new_task(String::from("T3"), String::from("D3"))?;
-        state.move_task_next_column()?;
+        state.move_task_column_right()?;
         assert_eq!(state.columns[1].tasks.len(), 0);
         assert_eq!(state.columns[2].tasks.len(), 1);
 
         for _ in 0..5 {
-            state.move_task_next_column()?;
+            state.move_task_column_right()?;
         }
         for _ in 0..4 {
-            state.move_task_previous_column()?;
+            state.move_task_column_left()?;
         }
 
         assert_eq!(state.columns[0].tasks.len(), 3);
@@ -185,25 +185,25 @@ mod app_tests {
         assert_eq!(state.columns[2].tasks.len(), 0);
         assert_eq!(state.columns[3].tasks.len(), 0);
         assert_eq!(state.get_selected_task().unwrap().title, "T3");
-        state.select_next_task()?;
-        state.select_previous_task()?;
+        state.select_task_below()?;
+        state.select_task_above()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T1");
-        state.select_previous_task()?;
+        state.select_task_above()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T2");
         state.select_first_task()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T2");
         state.select_last_task()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T3");
-        state.select_previous_task()?;
+        state.select_task_above()?;
 
         // Reload the data from the database then rerun the asserts to
         // make sure everything was saved correctly
         let mut state = State::new(state.db_conn.0)?;
 
         assert_eq!(state.get_selected_task().unwrap().title, "T1");
-        state.select_next_task()?;
+        state.select_task_below()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T3");
-        state.select_next_task()?;
+        state.select_task_below()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T3");
         state.select_first_task()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T2");
@@ -231,7 +231,7 @@ mod app_tests {
         assert_eq!(state.get_selected_task().unwrap().title, "T2");
         assert_eq!(state.get_selected_task().unwrap().description, "D1");
         for _ in 0..4 {
-            state.move_task_next_column()?;
+            state.move_task_column_right()?;
         }
         assert_eq!(state.get_selected_task().unwrap().title, "T2");
         assert_eq!(state.get_selected_task().unwrap().description, "D1");
@@ -239,7 +239,7 @@ mod app_tests {
         assert_eq!(state.get_selected_task().unwrap().title, "T3");
         assert_eq!(state.get_selected_task().unwrap().description, "D3");
         for _ in 0..4 {
-            state.move_task_previous_column()?;
+            state.move_task_column_left()?;
         }
         assert_eq!(state.get_selected_task().unwrap().title, "T3");
         assert_eq!(state.get_selected_task().unwrap().description, "D3");
@@ -283,10 +283,10 @@ mod app_tests {
         state.delete_task()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T2");
         state.add_new_task(String::from("T3"), String::from("D3"))?;
-        state.select_previous_task()?;
+        state.select_task_above()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T2");
         state.delete_task()?;
-        state.select_previous_task()?;
+        state.select_task_above()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T1");
         state.select_last_task()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T3");
@@ -296,7 +296,7 @@ mod app_tests {
         }
         state.delete_task()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T1");
-        state.select_next_task()?;
+        state.select_task_below()?;
         assert_eq!(state.get_selected_task().unwrap().title, "T3");
         for _ in 0..4 {
             state.delete_task()?;

@@ -1,42 +1,65 @@
 use anyhow::Error;
 use int_enum::IntEnum;
 use rusqlite::Connection;
-use serde::{Deserialize, Serialize};
 use std::cmp::min;
 use tui_textarea::TextArea;
 
 use crate::db;
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Represents a kanban column containing the tasks and other metadata.
+#[derive(Debug)]
 pub struct Column {
+    /// Id provided by the database
     pub id: i64,
+    /// The name used for the title in the UI
     pub name: String,
+    /// The currently selected [`Task`], which keeps track of the
+    /// user's position in a column when the go from one to another
     pub selected_task_idx: usize,
+    /// The collection of [`Task`]
     pub tasks: Vec<Task>,
 }
 
-#[derive(Clone, Default, Deserialize, Serialize, Debug)]
+/// Basic TODO task with a title and a description.
+#[derive(Clone, Default, Debug)]
 pub struct Task {
+    /// Id provided by the database
     pub id: i64,
+    /// Title of the [`Task`]
     pub title: String,
+    /// Description of the [`Task`]
     pub description: String,
 }
 
+/// The number of TaskEditFocus variants, used so we can "wrap around"
+/// with modulo when cycling through tasks with Tab/Backtab.
 pub const EDIT_WINDOW_FOCUS_STATES: i8 = 4;
 
+/// Used to track the focus of the form field in the task edit window.
 #[repr(i8)]
 #[derive(Debug, IntEnum, Copy, Clone)]
 pub enum TaskEditFocus {
+    /// Title text input line
     Title = 0,
+    /// Description text input box
     Description = 1,
+    /// Confirm changes button
     ConfirmBtn = 2,
+    /// Cancel changes button
     CancelBtn = 3,
 }
 
+/// Represents the transient state of a task while it is being editing
+/// by the user through the UI.
 pub struct TaskState<'a> {
+    /// The title of the Task
     pub title: TextArea<'a>,
+    /// The description of the Task
     pub description: TextArea<'a>,
+    /// Where the current focus of the task edit form is
     pub focus: TaskEditFocus,
+    /// Used to decide if the user is editing an existing task or
+    /// creating a new one
     pub is_edit: bool,
 }
 
@@ -51,12 +74,21 @@ impl Default for TaskState<'_> {
     }
 }
 
+/// Holds the application's state, including all columns and the
+/// database connection.
 pub struct State<'a> {
+    /// The name of the project, currently derived from the name of
+    /// the current working directory
     pub project_name: String,
+    /// The index of the currently selected [`Column`]
     pub selected_column_idx: usize,
+    /// A vec of all the [`Column`]s
     pub columns: Vec<Column>,
+    /// The [`db::DBConn`] wrapping a [`rusqlite::Connection`]
     pub db_conn: db::DBConn,
+    /// Flag to check on each loop whether we should exit the app
     pub quit: bool,
+    /// If [`Some(TaskState)`] then we are in the task edit form window
     pub task_edit_state: Option<TaskState<'a>>,
 }
 
@@ -87,33 +119,44 @@ impl<'a> State<'a> {
         })
     }
 
+    /// Returns a reference to the currently selected [`Column`].
     #[must_use]
     pub fn get_selected_column(&self) -> &Column {
         &self.columns[self.selected_column_idx]
     }
 
+    /// Returns a mutable reference to the currently selected
+    /// [`Column`].
     pub fn get_selected_column_mut(&mut self) -> &mut Column {
         &mut self.columns[self.selected_column_idx]
     }
 
-    pub fn select_previous_column(&mut self) -> Result<(), Error> {
+    /// Selects the [`Column`] on the left. Does nothing if on the
+    /// first column.
+    pub fn select_column_left(&mut self) -> Result<(), Error> {
         self.selected_column_idx = self.selected_column_idx.saturating_sub(1);
         self.db_conn.set_selected_column(self.selected_column_idx)
     }
 
-    pub fn select_next_column(&mut self) -> Result<(), Error> {
+    /// Selects the [`Column`] on the right. Does nothing if on the
+    /// last column.
+    pub fn select_column_right(&mut self) -> Result<(), Error> {
         self.selected_column_idx = min(self.selected_column_idx + 1, self.columns.len() - 1);
         self.db_conn.set_selected_column(self.selected_column_idx)
     }
 
+    /// Returns a reference to the currently selected [`Task`].
+    /// Returns `None` if the current [`Column::tasks`] is empty.
     #[must_use]
     pub fn get_selected_task(&self) -> Option<&Task> {
         let column = self.get_selected_column();
         column.tasks.get(column.selected_task_idx)
     }
 
+    /// Returns a reference to the [`Task`] above the current one.
+    /// Returns `None` if it's the first task on the list
     #[must_use]
-    pub fn get_previous_task(&self) -> Option<&Task> {
+    pub fn get_task_above(&self) -> Option<&Task> {
         let column = self.get_selected_column();
         if column.selected_task_idx > 0 {
             column.tasks.get(column.selected_task_idx - 1)
@@ -122,18 +165,25 @@ impl<'a> State<'a> {
         }
     }
 
+    /// Returns a reference to the [`Task`] below the current one.
+    /// Returns `None` if it's the last task on the list
     #[must_use]
-    pub fn get_next_task(&self) -> Option<&Task> {
+    pub fn get_task_below(&self) -> Option<&Task> {
         let column = self.get_selected_column();
         column.tasks.get(column.selected_task_idx + 1)
     }
 
+    /// Returns a mutable reference to the currently selected
+    /// [`Task`]. Returns `None` if the current [`Column::tasks`] is
+    /// empty.
     pub fn get_selected_task_mut(&mut self) -> Option<&mut Task> {
         let column = self.get_selected_column_mut();
         column.tasks.get_mut(column.selected_task_idx)
     }
 
-    pub fn select_previous_task(&mut self) -> Result<(), Error> {
+    /// Selects the [`Task`] above the current one. Does nothing if
+    /// it's the first task on the list
+    pub fn select_task_above(&mut self) -> Result<(), Error> {
         let column = self.get_selected_column_mut();
         column.selected_task_idx = column.selected_task_idx.saturating_sub(1);
 
@@ -144,7 +194,9 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    pub fn select_next_task(&mut self) -> Result<(), Error> {
+    /// Selects the [`Task`] below the current one. Does nothing if
+    /// it's the last task on the list
+    pub fn select_task_below(&mut self) -> Result<(), Error> {
         let column = self.get_selected_column_mut();
         column.selected_task_idx = min(
             column.selected_task_idx + 1,
@@ -158,6 +210,8 @@ impl<'a> State<'a> {
         Ok(())
     }
 
+    /// Selects the [`Task`] at the beginning of the list, no matter
+    /// where you are in the current [`Column`].
     pub fn select_first_task(&mut self) -> Result<(), Error> {
         let column = self.get_selected_column_mut();
         column.selected_task_idx = 0;
@@ -169,6 +223,8 @@ impl<'a> State<'a> {
         Ok(())
     }
 
+    /// Selects the [`Task`] at the end of the list, no matter
+    /// where you are in the current [`Column`].
     pub fn select_last_task(&mut self) -> Result<(), Error> {
         let column = self.get_selected_column_mut();
         column.selected_task_idx = column.tasks.len().saturating_sub(1);
@@ -180,6 +236,9 @@ impl<'a> State<'a> {
         Ok(())
     }
 
+    /// Helper method to construct a [`TaskState`]. Used when we are
+    /// going to edit an existing [`Task`]. Returns `None` if the
+    /// [`Column`] is empty.
     #[must_use]
     pub fn get_task_state_from_current(&self) -> Option<TaskState<'a>> {
         self.get_selected_task().map(|t| TaskState {
@@ -190,20 +249,25 @@ impl<'a> State<'a> {
         })
     }
 
+    /// Moves the current [`Task`] up the list towards the top. Does
+    /// nothing if it's the first task.
     pub fn move_task_up(&mut self) -> Result<(), Error> {
         self.move_task(false)
     }
 
+    /// Moves the current [`Task`] down the list towards the bottom. Does
+    /// nothing if it's the last task.
     pub fn move_task_down(&mut self) -> Result<(), Error> {
         self.move_task(true)
     }
 
-    /// Returns the move task down of this [`State`].
-    pub fn move_task(&mut self, is_down: bool) -> Result<(), Error> {
+    /// Private function to handle saving the current [`Task`]'s
+    /// state.
+    fn move_task(&mut self, is_down: bool) -> Result<(), Error> {
         let other_task = if is_down {
-            self.get_next_task()
+            self.get_task_below()
         } else {
-            self.get_previous_task()
+            self.get_task_above()
         };
         if let (Some(task1), Some(task2)) = (self.get_selected_task(), other_task) {
             let t1_id = task1.id;
@@ -228,11 +292,15 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    pub fn move_task_previous_column(&mut self) -> Result<(), Error> {
+    /// Moves the current [`Task`] to the [`Column`] on the left. Does
+    /// nothing if it's the first column.
+    pub fn move_task_column_left(&mut self) -> Result<(), Error> {
         self.move_task_to_column(false)
     }
 
-    pub fn move_task_next_column(&mut self) -> Result<(), Error> {
+    /// Moves the current [`Task`] to the [`Column`] on the right. Does
+    /// nothing if it's the last column.
+    pub fn move_task_column_right(&mut self) -> Result<(), Error> {
         self.move_task_to_column(true)
     }
 
@@ -249,13 +317,13 @@ impl<'a> State<'a> {
 
         // Only move it if it was the last task
         if first_col.selected_task_idx == first_col.tasks.len() {
-            self.select_previous_task()?;
+            self.select_task_above()?;
         }
 
         if move_right {
-            self.select_next_column()?;
+            self.select_column_right()?;
         } else {
-            self.select_previous_column()?;
+            self.select_column_left()?;
         }
 
         let col = self.get_selected_column_mut();
@@ -269,6 +337,8 @@ impl<'a> State<'a> {
         Ok(())
     }
 
+    /// Inserts a new [`Task`] into [`Column::tasks`] at the bottom of
+    /// the list and saves the state to the DB.
     pub fn add_new_task(&mut self, title: String, description: String) -> Result<(), Error> {
         let col_id = self.get_selected_column().id;
         let task = self.db_conn.create_new_task(title, description, col_id)?;
@@ -283,6 +353,8 @@ impl<'a> State<'a> {
         Ok(())
     }
 
+    /// Edits the selected [`Task`] changing only it's title and/or
+    /// description. Does nothing if the [`Column`] is empty.
     pub fn edit_task(&mut self, title: String, description: String) -> Result<(), Error> {
         if let Some(selected_task) = self.get_selected_task_mut() {
             selected_task.title = title;
@@ -294,7 +366,8 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    /// Delete the currently selected task from the selected column
+    /// Deletes the selected [`Task`] from the list. Does nothing if
+    /// the [`Column`] is empty.
     pub fn delete_task(&mut self) -> Result<(), Error> {
         if let Some(task) = self.get_selected_task() {
             let task_id = task.id;
@@ -305,7 +378,7 @@ impl<'a> State<'a> {
             column.tasks.remove(task_idx);
 
             if column.selected_task_idx >= column.tasks.len() {
-                self.select_previous_task()?;
+                self.select_task_above()?;
                 task_idx = task_idx.saturating_sub(1);
             }
 

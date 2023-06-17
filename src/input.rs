@@ -5,12 +5,11 @@ use crossterm::event::{Event, KeyCode};
 use int_enum::IntEnum;
 
 pub fn cycle_focus(task: &mut TaskState<'_>, forward: bool) -> Result<(), Error> {
-    let cycle;
-    if forward {
-        cycle = (task.focus.int_value() + 1) % EDIT_WINDOW_FOCUS_STATES;
+    let cycle = if forward {
+        (task.focus.int_value() + 1) % EDIT_WINDOW_FOCUS_STATES
     } else {
-        cycle = (task.focus.int_value() - 1) % EDIT_WINDOW_FOCUS_STATES;
-    }
+        (task.focus.int_value() - 1) % EDIT_WINDOW_FOCUS_STATES
+    };
     task.focus = TaskEditFocus::from_int(cycle)?;
     Ok(())
 }
@@ -66,14 +65,14 @@ pub fn handle_task_edit(state: &mut State<'_>, key: event::KeyEvent) -> Result<(
 pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) -> Result<(), Error> {
     match key.code {
         KeyCode::Char('q') => Ok(state.quit = true),
-        KeyCode::Char('h') | KeyCode::Left => state.select_previous_column(),
-        KeyCode::Char('j') | KeyCode::Down => state.select_next_task(),
-        KeyCode::Char('k') | KeyCode::Up => state.select_previous_task(),
-        KeyCode::Char('l') | KeyCode::Right => state.select_next_column(),
+        KeyCode::Char('h') | KeyCode::Left => state.select_column_left(),
+        KeyCode::Char('j') | KeyCode::Down => state.select_task_below(),
+        KeyCode::Char('k') | KeyCode::Up => state.select_task_above(),
+        KeyCode::Char('l') | KeyCode::Right => state.select_column_right(),
         KeyCode::Char('g') => state.select_first_task(),
         KeyCode::Char('G') => state.select_last_task(),
-        KeyCode::Char('H') => state.move_task_previous_column(),
-        KeyCode::Char('L') => state.move_task_next_column(),
+        KeyCode::Char('H') => state.move_task_column_left(),
+        KeyCode::Char('L') => state.move_task_column_right(),
         KeyCode::Char('J') => state.move_task_down(),
         KeyCode::Char('K') => state.move_task_up(),
         KeyCode::Char('n') => Ok(state.task_edit_state = Some(TaskState::default())),
@@ -83,10 +82,15 @@ pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) -> Result<(), Er
     }
 }
 
+/// Takes the app's [`State`] and uses [`event::read`] to get the current keypress.
+///
 /// # Errors
 ///
-/// Crossterm `event::read()` might return an error
-pub fn handle(state: &mut State<'_>) -> Result<(), Error> {
+/// Most of the applications errors will be bubbled up to this layer,
+/// including all database related ones
+///
+/// Crossterm `event::read()` might return an error,
+pub fn handle_user_keypress(state: &mut State<'_>) -> Result<(), Error> {
     if let Event::Key(key) = event::read()? {
         if state.task_edit_state.is_some() {
             handle_task_edit(state, key)?;

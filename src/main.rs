@@ -49,8 +49,8 @@ fn main() -> anyhow::Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     while !state.quit {
-        terminal.draw(|f| kanban_tui::draw(f, &mut state))?;
-        kanban_tui::handle(&mut state)?;
+        terminal.draw(|f| kanban_tui::draw_ui_from_state(f, &mut state))?;
+        kanban_tui::handle_user_keypress(&mut state)?;
     }
 
     // restore terminal

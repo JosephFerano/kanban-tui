@@ -216,14 +216,16 @@ fn draw_project_stats<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &mut 
     f.render_widget(list, area);
 }
 
-/// Macro to generate keybindings string at compile time
+/// Macro to generate the app's keybindings string at compile time
 macro_rules! unroll {
     (($first_a:literal, $first_b:literal), $(($a:literal, $b:literal)),*) => {
         concat!(concat!($first_a, ": ", $first_b) $(," | ", concat!($a, ": ", $b))*)
     };
 }
 
-pub fn draw<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>) {
+/// Takes the app's [`State`] so [ratatui][`tui`] can render it to the
+/// terminal screen
+pub fn draw_ui_from_state<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>) {
     let main_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(

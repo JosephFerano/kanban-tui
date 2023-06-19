@@ -31,7 +31,7 @@ pub struct Task {
     pub description: String,
 }
 
-/// The number of TaskEditFocus variants, used so we can "wrap around"
+/// The number of `TaskEditFocus` variants, used so we can "wrap around"
 /// with modulo when cycling through tasks with Tab/Backtab.
 pub const EDIT_WINDOW_FOCUS_STATES: i8 = 4;
 
@@ -133,6 +133,10 @@ impl<'a> State<'a> {
 
     /// Selects the [`Column`] on the left. Does nothing if on the
     /// first column.
+    ///
+    /// # Errors
+    ///
+    /// SQL related errors get bubbled up to here.
     pub fn select_column_left(&mut self) -> Result<(), Error> {
         self.selected_column_idx = self.selected_column_idx.saturating_sub(1);
         self.db_conn.set_selected_column(self.selected_column_idx)
@@ -140,6 +144,10 @@ impl<'a> State<'a> {
 
     /// Selects the [`Column`] on the right. Does nothing if on the
     /// last column.
+    ///
+    /// # Errors
+    ///
+    /// SQL related errors get bubbled up to here.
     pub fn select_column_right(&mut self) -> Result<(), Error> {
         self.selected_column_idx = min(self.selected_column_idx + 1, self.columns.len() - 1);
         self.db_conn.set_selected_column(self.selected_column_idx)
@@ -183,6 +191,10 @@ impl<'a> State<'a> {
 
     /// Selects the [`Task`] above the current one. Does nothing if
     /// it's the first task on the list
+    ///
+    /// # Errors
+    ///
+    /// SQL related errors get bubbled up to here.
     pub fn select_task_above(&mut self) -> Result<(), Error> {
         let column = self.get_selected_column_mut();
         column.selected_task_idx = column.selected_task_idx.saturating_sub(1);
@@ -196,6 +208,10 @@ impl<'a> State<'a> {
 
     /// Selects the [`Task`] below the current one. Does nothing if
     /// it's the last task on the list
+    ///
+    /// # Errors
+    ///
+    /// SQL related errors get bubbled up to here.
     pub fn select_task_below(&mut self) -> Result<(), Error> {
         let column = self.get_selected_column_mut();
         column.selected_task_idx = min(
@@ -212,6 +228,10 @@ impl<'a> State<'a> {
 
     /// Selects the [`Task`] at the beginning of the list, no matter
     /// where you are in the current [`Column`].
+    ///
+    /// # Errors
+    ///
+    /// SQL related errors get bubbled up to here.
     pub fn select_first_task(&mut self) -> Result<(), Error> {
         let column = self.get_selected_column_mut();
         column.selected_task_idx = 0;
@@ -225,6 +245,10 @@ impl<'a> State<'a> {
 
     /// Selects the [`Task`] at the end of the list, no matter
     /// where you are in the current [`Column`].
+    ///
+    /// # Errors
+    ///
+    /// SQL related errors get bubbled up to here.
     pub fn select_last_task(&mut self) -> Result<(), Error> {
         let column = self.get_selected_column_mut();
         column.selected_task_idx = column.tasks.len().saturating_sub(1);
@@ -251,12 +275,20 @@ impl<'a> State<'a> {
 
     /// Moves the current [`Task`] up the list towards the top. Does
     /// nothing if it's the first task.
+    ///
+    /// # Errors
+    ///
+    /// SQL related errors get bubbled up to here.
     pub fn move_task_up(&mut self) -> Result<(), Error> {
         self.move_task(false)
     }
 
     /// Moves the current [`Task`] down the list towards the bottom. Does
     /// nothing if it's the last task.
+    ///
+    /// # Errors
+    ///
+    /// SQL related errors get bubbled up to here.
     pub fn move_task_down(&mut self) -> Result<(), Error> {
         self.move_task(true)
     }
@@ -294,12 +326,20 @@ impl<'a> State<'a> {
 
     /// Moves the current [`Task`] to the [`Column`] on the left. Does
     /// nothing if it's the first column.
+    ///
+    /// # Errors
+    ///
+    /// SQL related errors get bubbled up to here.
     pub fn move_task_column_left(&mut self) -> Result<(), Error> {
         self.move_task_to_column(false)
     }
 
     /// Moves the current [`Task`] to the [`Column`] on the right. Does
     /// nothing if it's the last column.
+    ///
+    /// # Errors
+    ///
+    /// SQL related errors get bubbled up to here.
     pub fn move_task_column_right(&mut self) -> Result<(), Error> {
         self.move_task_to_column(true)
     }
@@ -339,6 +379,10 @@ impl<'a> State<'a> {
 
     /// Inserts a new [`Task`] into [`Column::tasks`] at the bottom of
     /// the list and saves the state to the DB.
+    ///
+    /// # Errors
+    ///
+    /// SQL related errors get bubbled up to here.
     pub fn add_new_task(&mut self, title: String, description: String) -> Result<(), Error> {
         let col_id = self.get_selected_column().id;
         let task = self.db_conn.create_new_task(title, description, col_id)?;
@@ -355,6 +399,10 @@ impl<'a> State<'a> {
 
     /// Edits the selected [`Task`] changing only it's title and/or
     /// description. Does nothing if the [`Column`] is empty.
+    ///
+    /// # Errors
+    ///
+    /// SQL related errors get bubbled up to here.
     pub fn edit_task(&mut self, title: String, description: String) -> Result<(), Error> {
         if let Some(selected_task) = self.get_selected_task_mut() {
             selected_task.title = title;
@@ -368,6 +416,10 @@ impl<'a> State<'a> {
 
     /// Deletes the selected [`Task`] from the list. Does nothing if
     /// the [`Column`] is empty.
+    ///
+    /// # Errors
+    ///
+    /// SQL related errors get bubbled up to here.
     pub fn delete_task(&mut self) -> Result<(), Error> {
         if let Some(task) = self.get_selected_task() {
             let task_id = task.id;

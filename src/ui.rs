@@ -189,6 +189,7 @@ fn draw_task_popup<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_>, popu
     }
 }
 
+#[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
 fn draw_project_stats<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &mut State<'_>) {
     let block = Block::default()
         .title("PROJECT STATS")
@@ -199,17 +200,14 @@ fn draw_project_stats<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &mut 
     let c3_len = state.columns[2].tasks.len();
     let c4_len = state.columns[3].tasks.len();
     let tocomplete_total = c1_len + c2_len + c3_len;
-    let percentage = (c3_len as f32 / tocomplete_total as f32 * 100.0) as u8;
+    let percentage = (c3_len as f32 / tocomplete_total as f32 * 100.0) as i8;
     let list = List::new(vec![ListItem::new(vec![
         Spans::from("Tasks per Column:"),
-        Spans::from(format!("  Todo ({})", c1_len)),
-        Spans::from(format!("  In Progress ({})", c2_len)),
-        Spans::from(format!("  Done ({})", c3_len)),
-        Spans::from(format!("  Ideas ({})", c4_len)),
-        Spans::from(format!(
-            "Progress: {} / {} - {}%",
-            c3_len, tocomplete_total, percentage
-        )),
+        Spans::from(format!("  Todo ({c1_len})")),
+        Spans::from(format!("  In Progress ({c2_len})")),
+        Spans::from(format!("  Done ({c3_len})")),
+        Spans::from(format!("  Ideas ({c4_len})")),
+        Spans::from(format!("Progress: {c3_len} / {tocomplete_total} - {percentage}%")),
     ])])
     .block(block);
 

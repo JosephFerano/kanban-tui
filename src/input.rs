@@ -62,6 +62,7 @@ pub fn handle_task_edit(state: &mut State<'_>, key: event::KeyEvent) -> Result<(
     Ok(())
 }
 
+#[allow(clippy::unit_arg)]
 pub fn handle_main(state: &mut State<'_>, key: event::KeyEvent) -> Result<(), Error> {
     match key.code {
         KeyCode::Char('q') => Ok(state.quit = true),

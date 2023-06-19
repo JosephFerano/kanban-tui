@@ -57,7 +57,7 @@ impl DBConn {
         Ok(tasks)
     }
 
-    /// Uses [get_tasks_by_column][`DBConn::get_tasks_by_column`] over
+    /// Uses [`get_tasks_by_column`][`DBConn::get_tasks_by_column`] over
     /// a loop to get all [`Column`] populated with the vec of.
     /// [`Task`]
     ///
@@ -155,8 +155,8 @@ impl DBConn {
         Ok(())
     }
 
-    /// This is a helper function in case we need to debug sort_order, because I ran into
-    /// a bug when I forgot to insert the sort_order when creating a task.
+    /// This is a helper function in case we need to debug `sort_order`, because I ran into
+    /// a bug when I forgot to insert the `sort_order` when creating a task.
     #[allow(dead_code)]
     fn get_sort_order(&self) -> Result<Vec<(i32, String, usize)>> {
         let mut stmt = self.prepare(
@@ -165,13 +165,13 @@ impl DBConn {
 
         let mut tasks = Vec::new();
         while let Some(row) = rows.next()? {
-            tasks.push((row.get(0)?, row.get(1)?, row.get(2)?,))
+            tasks.push((row.get(0)?, row.get(1)?, row.get(2)?,));
         }
         Ok(tasks)
     }
 
     /// The order of a [`Task`] in a [`Column`] needs to be saved to
-    /// the DB because SQLite doesn't have a way to handle the
+    /// the DB because `SQLite` doesn't have a way to handle the
     /// ordering the internal [`Vec<Task>`] has. This takes the
     /// current sorting order of two tasks and swaps them.
     ///

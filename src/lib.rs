@@ -3,7 +3,7 @@
 //! kanban-tui is a TUI based application using [`ratatui`] for
 //! rendering the UI and capturing user input interaction, with
 //! [`Crossterm`] as the lower-level backend system for terminal
-//! text-based interfaces. The data is saved to a SQLite database
+//! text-based interfaces. The data is saved to a `SQLite` database
 //! ideally placed in the root of your project. For this the
 //! [`rusqlite`] crate provides the bindings to handle all the data
 //! persistence.

@@ -14,7 +14,6 @@ fn draw_tasks<B: Backend>(f: &mut Frame<'_, B>, area: Rect, state: &State<'_>) {
                 Constraint::Percentage(100 / u16::try_from(state.columns.len()).unwrap_or(4));
                 state.columns.len()
             ]
-            .as_ref(),
         )
         .split(area);
 
@@ -247,7 +246,7 @@ pub fn draw_ui_from_state<B: Backend>(f: &mut Frame<'_, B>, state: &mut State<'_
 
     let info_area = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints(vec![Constraint::Min(60), Constraint::Max(60)].as_ref())
+        .constraints(&[Constraint::Min(60), Constraint::Max(60)])
         .split(main_layout[2]);
 
     draw_task_info(f, info_area[0], state);
